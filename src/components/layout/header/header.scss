@@ -1,3 +1,77 @@
-.header-wrapper {
+.dashboard-header {
+    align-items: center;
+    display: flex;
+    padding: 10px 14px;
+    width: 100%;
+    #header_left {
+        display: flex !important;
+        .sidebar-logo-wrap {
+            .menu-btn {
+                img {
 
+                }
+            }
+        }
+    }
+    #header_right {
+        display: flex !important;
+        .dropdown {
+
+        }
+        .referrals-link {
+            .dropdown-toggle-p {
+                font-weight: bold;
+                cursor: pointer;
+                padding-top: 6px;
+                padding-bottom: 6px;
+                span {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    background-color: #58A744;
+                    margin-right: 10px;
+                }
+            }
+        }
+        .dropdown-menu {
+            background-color: #262626;
+            li {
+                .dropdown-item {
+                    span {
+                        width: 12px;
+                        height: 12px;
+                        border-radius: 50%;
+                        margin-right: 10px;
+                        display: inline-block;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Inline styles from HTML */
+    .dropdown:hover .dropdown-menu {
+        display: block;
+        margin-top: 0; /* remove delay caused by margin */
+    }
+
+    /* Optional: make p look like a button */
+    .dropdown-toggle-p {
+        color: white;
+        cursor: pointer;
+    }
+
+    .operational .dropdown-menu li a {
+        font-size: 13.6px;
+        line-height: 38px;
+        color: #C4D1C7;
+        padding: 0 12px;
+        letter-spacing: 0.5px;
+        background-color: #262626;
+    }
+
+    .operational .dropdown-menu li a:hover,
+    .operational .dropdown-menu li a:active {
+        background: #38393C;
+    }
 }

@@ -11,6 +11,10 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "bootstrap": "^5.3.3",
+    "chart.js": "^4.5.1",
+    "chartjs-plugin-annotation": "^3.1.0",
+    "chartjs-plugin-dragdata": "^2.3.1",
     "classnames": "^2.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
