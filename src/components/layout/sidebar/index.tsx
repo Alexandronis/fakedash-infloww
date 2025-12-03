@@ -1,31 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { sidebarItems } from '../../../data/sidebarData';
 import './sidebar.scss';
 
 const Sidebar: React.FC = () => {
-  const [activeMainIndex, setActiveMainIndex] = useState<number | null>(null);
-  const [activeSubIndex, setActiveSubIndex] = useState<{
-    parent: number | null;
-    index: number | null;
-  }>({ parent: null, index: null });
+  const [expandedMainIndex, setExpandedMainIndex] = useState<number | null>(null);
+  const [urlActive, setUrlActive] = useState<{ parent: number | null; index: number | null }>({
+    parent: null,
+    index: null,
+  });
+
+  // Auto-detect active item based on current URL
+  useEffect(() => {
+    const path = window.location.pathname;
+
+    sidebarItems.forEach((item, index) => {
+      // MAIN link matches URL
+      if (item.type === "link" && item.href === path) {
+        setUrlActive({ parent: null, index });
+        setExpandedMainIndex(index); // open main item
+      }
+
+      // SUBMENU link matches URL
+      if (item.submenu) {
+        item.submenu.forEach((sub, i) => {
+          if (sub.href === path) {
+            setUrlActive({ parent: index, index: i });
+            setExpandedMainIndex(index); // expand parent
+          }
+        });
+      }
+    });
+  }, []);
 
   const handleMainClick = (index: number) => {
-    // Toggle logic:
-    if (activeMainIndex === index) {
-      // It is already active → deactivate it
-      setActiveMainIndex(null);
-      setActiveSubIndex({ parent: null, index: null });
-      return;
+    // Toggle expand/collapse
+    if (expandedMainIndex === index) {
+      setExpandedMainIndex(null);
+    } else {
+      setExpandedMainIndex(index);
     }
-
-    // Otherwise activate it
-    setActiveMainIndex(index);
-    setActiveSubIndex({ parent: null, index: null });
   };
 
   const handleSubClick = (parentIndex: number, subIndex: number) => {
-    setActiveMainIndex(parentIndex);
-    setActiveSubIndex({ parent: parentIndex, index: subIndex });
+    // Update URL-based active submenu
+    setUrlActive({ parent: parentIndex, index: subIndex });
+    setExpandedMainIndex(parentIndex); // ensure parent is expanded
+
+    // If the user clicks a submenu of a different parent than `/creator`, remove `/creator` main active
+    if (!(parentIndex === urlActive.parent && subIndex === urlActive.index)) {
+      // nothing to do here, the expandedMainIndex already controls main highlight
+    }
   };
 
   return (
@@ -33,18 +57,14 @@ const Sidebar: React.FC = () => {
       <div className="sidebar-main">
         <ul className="sidebar-link-list">
           {sidebarItems.map((item, index) => {
-
             if (item.type === "hr") return <hr key={index} />;
 
             const isMainActive =
-              index === 0 ||
-              activeMainIndex === index;
+              index === 0 || // OF top menu always active
+              expandedMainIndex === index;
 
             return (
-              <li
-                key={index}
-                style={item.style}
-              >
+              <li key={index} style={item.style}>
                 {item.type === "link" ? (
                   <a
                     href={item.href}
@@ -83,8 +103,7 @@ const Sidebar: React.FC = () => {
                     <ul>
                       {item.submenu.map((sub, i) => {
                         const isSubActive =
-                          activeSubIndex.parent === index &&
-                          activeSubIndex.index === i;
+                          urlActive.parent === index && urlActive.index === i;
 
                         return (
                           <li key={i}>
