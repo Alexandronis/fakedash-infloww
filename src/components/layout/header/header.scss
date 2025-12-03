@@ -33,8 +33,8 @@
             .dropdown-toggle-p {
                 font-weight: bold;
                 cursor: pointer;
-                padding-top: 6px;
-                padding-bottom: 6px;
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
                 color: #fff;
                 span {
                     width: 12px;
@@ -199,6 +199,7 @@
                     line-height: 1;
                     margin-right: 8px;
                     border-radius: 50%;
+                    font-weight: 600;
                     &:not(:has(img)) {
                         height: 28px;
                         width: 28px;
