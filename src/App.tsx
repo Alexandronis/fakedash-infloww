@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useState } from 'react';
 
 import Sidebar from './components/layout/sidebar';
 import Header from './components/layout/header';
@@ -7,15 +8,21 @@ import CreatorPage from './pages/creator';
 import './App.css'
 
 function App() {
+  const [menuClosed, setMenuClosed] = useState(false);
+
+  const toggleMenu = () => {
+    setMenuClosed(prev => !prev);
+  };
+
   return (
-    <div className="dashboard-wrap">
-      <Header />
-      <Sidebar />
+    <div className={`dashboard-wrap${menuClosed ? " menu-close" : ""}`}>
+      <Header onMenuToggle={toggleMenu} />
+      <Sidebar/>
       <div className="main-content">
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={<HomePage />} />
-          <Route path="/creator" element={<CreatorPage />} />
+          <Route path="/" element={<Navigate to="/dashboard"/>}/>
+          <Route path="/dashboard" element={<HomePage/>}/>
+          <Route path="/creator" element={<CreatorPage/>}/>
         </Routes>
       </div>
     </div>

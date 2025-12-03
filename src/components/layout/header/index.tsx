@@ -15,7 +15,11 @@ const dropdownItems = [
   { label: "Reports", color: "#58A744" },
 ];
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  onMenuToggle: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const [selectedItem, setSelectedItem] = useState(dropdownItems[0]);
   const [sfwActive, setSfwActive] = useState(false);
   const handleDropdownClick = (item: typeof dropdownItems[0]) => {
@@ -29,7 +33,7 @@ const Header: React.FC = () => {
     <div className="dashboard-header justify-content-between justify-content-end">
       <div className="d-flex align-items-center" id="header_left">
         <div className="sidebar-logo-wrap">
-          <button type="button" className="menu-btn">
+          <button type="button" className="menu-btn" onClick={onMenuToggle}>
             <img src="/hambuger-icon.png" alt="" />
           </button>
         </div>
