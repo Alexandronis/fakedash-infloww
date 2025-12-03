@@ -11,7 +11,6 @@ export const sidebarItems = [
   {
     type: "link",
     href: "/dashboard",
-    className: "active",
     icon: "/home-icon.svg",
     label: "Dashboard",
   },

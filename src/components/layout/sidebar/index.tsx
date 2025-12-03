@@ -34,22 +34,28 @@ const Sidebar: React.FC = () => {
 
   const handleMainClick = (index: number) => {
     // Toggle expand/collapse
-    if (expandedMainIndex === index) {
-      setExpandedMainIndex(null);
-    } else {
-      setExpandedMainIndex(index);
-    }
+    setExpandedMainIndex(expandedMainIndex === index ? null : index);
   };
 
   const handleSubClick = (parentIndex: number, subIndex: number) => {
-    // Update URL-based active submenu
     setUrlActive({ parent: parentIndex, index: subIndex });
     setExpandedMainIndex(parentIndex); // ensure parent is expanded
+  };
 
-    // If the user clicks a submenu of a different parent than `/creator`, remove `/creator` main active
-    if (!(parentIndex === urlActive.parent && subIndex === urlActive.index)) {
-      // nothing to do here, the expandedMainIndex already controls main highlight
+  // Bottom menu state
+  const [bottomActiveIndex, setBottomActiveIndex] = useState<number | null>(null);
+  const handleBottomClick = (index: number) => {
+    if (bottomActiveIndex === index) {
+      // If the same item is clicked, deactivate it
+      setBottomActiveIndex(null);
+    } else {
+      // Otherwise, activate the clicked item
+      setBottomActiveIndex(index);
     }
+
+    // Clear top menu active states when bottom menu is clicked
+    setExpandedMainIndex(null);
+    setUrlActive({ parent: null, index: null });
   };
 
   return (
@@ -60,8 +66,11 @@ const Sidebar: React.FC = () => {
             if (item.type === "hr") return <hr key={index} />;
 
             const isMainActive =
-              index === 0 || // OF top menu always active
-              expandedMainIndex === index;
+              item.type === 'button'
+                ? expandedMainIndex === index
+                : item.type === 'link'
+                  ? urlActive.parent === null && urlActive.index === index
+                  : false;
 
             return (
               <li key={index} style={item.style}>
@@ -126,6 +135,34 @@ const Sidebar: React.FC = () => {
             );
           })}
         </ul>
+      </div>
+
+      {/* Bottom menu */}
+      <div className="sidebar-main">
+        <hr />
+        <ul className="sidebar-link-list">
+          <li>
+            <a
+              type="button"
+              id="settings-menu"
+              className={bottomActiveIndex === 0 ? 'active' : ''}
+              onClick={() => handleBottomClick(0)}
+            >
+              <img src="/settings-icon.png" alt="" /> Settings
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              className={bottomActiveIndex === 1 ? 'active' : ''}
+              onClick={() => handleBottomClick(1)}
+            >
+              <img src="/help-center-icon.png" alt=""/> Help center
+            </a>
+          </li>
+        </ul>
+
+        <p className="version">Version 5.6.1</p>
       </div>
     </div>
   );
