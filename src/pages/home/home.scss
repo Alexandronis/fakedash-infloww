@@ -217,7 +217,7 @@
         padding-right: 0;
         display: flex;
         width: 100% !important;
-        .main-card-wrap.charts {
+        .main-card-wrap.charts, .main-card-wrap.charts1 {
             width: 240px;
             .main-card-content.nodata {
                 display: flex;
@@ -237,6 +237,11 @@
                     color: #808080;
                 }
             }
+        }
+        .main-card-wrap.charts1 {
+            width: 98%;
+            margin-left: 15px;
+            margin-top: 0;
         }
     }
 }
