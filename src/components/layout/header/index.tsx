@@ -1,8 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import "./header.scss";
 
+const dropdownItems = [
+  { label: "Operational", color: "#58A744" },
+  { label: "Partials Outage", color: "#F88056" },
+  { label: "Proxy service", color: "#58A744" },
+  { label: "Messages and notifications", color: "#58A744" },
+  { label: "Growth tools", color: "#58A744" },
+  { label: "Creator and employee management", color: "#58A744" },
+  { label: "Billing and balances", color: "#58A744" },
+  { label: "Share for share", color: "#58A744" },
+  { label: "Affiliate manager", color: "#58A744" },
+  { label: "Infloww.com", color: "#58A744" },
+  { label: "Reports", color: "#58A744" },
+];
+
 const Header: React.FC = () => {
-  //const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(dropdownItems[0]);
+  const handleDropdownClick = (item: typeof dropdownItems[0]) => {
+    setSelectedItem(item);
+  };
 
   return (
     <div className="dashboard-header justify-content-between justify-content-end">
@@ -17,87 +34,26 @@ const Header: React.FC = () => {
       <div className="d-flex align-items-center" id="header_right">
         <div className="dropdown operational">
           <p className="referrals-link dropdown-toggle-p">
-            <span />
-            Operational
+            <span style={{backgroundColor: selectedItem.color}}/>
+            {selectedItem.label}
           </p>
 
           <ul className="dropdown-menu">
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Operational
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#F88056" }}></span>
-                Partials Outage
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Proxy service
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Messages and notifications
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Growth tools
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Creator and employee management
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Billing and balances
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Share for share
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Affiliate manager
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Infloww.com
-              </a>
-            </li>
-
-            <li>
-              <a className="dropdown-item" href="#">
-                <span style={{ backgroundColor: "#58A744" }}></span>
-                Reports
-              </a>
-            </li>
+            {dropdownItems.map((item) => (
+              <li key={item.label}>
+                <a
+                  className="dropdown-item"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDropdownClick(item);
+                  }}
+                >
+                  <span style={{backgroundColor: item.color}}></span>
+                  {item.label}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -106,16 +62,16 @@ const Header: React.FC = () => {
             type="button"
             className="tooltip-custom info-icon"
             data-bs-toggle="tooltip"
-            style={{ marginRight: "10px", marginLeft: "5px" }}
+            style={{marginRight: "10px", marginLeft: "5px"}}
           >
-            <img src="/top-globe-icon.png" alt="" />
+            <img src="/top-globe-icon.png" alt=""/>
           </button>
           UTC+01:00
           <button
             type="button"
             className="tooltip-custom info-icon"
             data-bs-toggle="tooltip"
-            style={{ marginRight: "5px", marginLeft: "5px" }}
+            style={{marginRight: "5px", marginLeft: "5px"}}
             data-bs-placement="top"
             data-bs-title="Tooltip on top"
           >
