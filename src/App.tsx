@@ -18,13 +18,11 @@ function App() {
     <div className={`dashboard-wrap${menuClosed ? " menu-close" : ""}`}>
       <Header onMenuToggle={toggleMenu} />
       <Sidebar/>
-      <div className="main-content">
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard"/>}/>
-          <Route path="/dashboard" element={<HomePage/>}/>
-          <Route path="/creator" element={<CreatorPage/>}/>
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard"/>}/>
+        <Route path="/dashboard" element={<HomePage/>}/>
+        <Route path="/creator" element={<CreatorPage/>}/>
+      </Routes>
     </div>
   )
 }
