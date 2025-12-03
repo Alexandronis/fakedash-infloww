@@ -17,8 +17,12 @@ const dropdownItems = [
 
 const Header: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState(dropdownItems[0]);
+  const [sfwActive, setSfwActive] = useState(false);
   const handleDropdownClick = (item: typeof dropdownItems[0]) => {
     setSelectedItem(item);
+  };
+  const toggleSfw = () => {
+    setSfwActive((prev) => !prev);
   };
 
   return (
@@ -98,11 +102,14 @@ const Header: React.FC = () => {
         </a>
 
         <label className="toggle-container">
-          <span className="toggle-label" style={{ color: "rgb(97, 97, 97)" }}>
+          <span
+            className="toggle-label"
+            style={{color: sfwActive ? "rgb(255,255,255)" : "rgb(97, 97, 97)"}}
+          >
             SFW
           </span>
           <div className="toggle-switch">
-            <input type="checkbox" id="sfw-toggle" />
+            <input type="checkbox" id="sfw-toggle" checked={sfwActive} onChange={toggleSfw} />
             <div className="slider"></div>
           </div>
         </label>
