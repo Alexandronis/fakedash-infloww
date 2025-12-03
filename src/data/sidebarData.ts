@@ -1,6 +1,6 @@
 export const sidebarItems = [
   {
-    type: "button",                // button or link
+    type: "button",
     style: { marginBottom: "30px" },
     id: "of-top-menu",
     icon: "/of-menu-icon.png",
@@ -10,7 +10,7 @@ export const sidebarItems = [
 
   {
     type: "link",
-    href: "#",
+    href: "/dashboard",
     className: "active",
     icon: "/home-icon.svg",
     label: "Dashboard",
@@ -40,7 +40,7 @@ export const sidebarItems = [
     icon: "/analytics-icon.svg",
     label: "Analytics",
     submenu: [
-      { href: "creator.html", icon: "/creator-icon.svg", label: "Creator reports" },
+      { href: "/creator", icon: "/creator-icon.svg", label: "Creator reports" },
       { href: "#", icon: "/person-icon.svg", label: "Employee reports" },
       { href: "#", icon: "/fan-icon.svg", label: "Fan reports" },
       { href: "#", icon: "/message-dashboard-icon.svg", label: "Message dashboard" },
