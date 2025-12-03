@@ -241,7 +241,15 @@
         .main-card-wrap.charts1 {
             width: 98%;
             margin-left: 15px;
-            margin-top: 0;
+            margin-top: 15px;
+        }
+        #employee-sales {
+            background: #262626;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 98%;
+            height: 400px;
+            margin-left: 16px;
         }
     }
 }
