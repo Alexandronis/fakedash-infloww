@@ -175,8 +175,23 @@ const HomePage: React.FC = () => {
             </div>
           </div>
         </div>
+        <div className="col-lg-3 charts">
+          <div className="main-card-wrap charts">
+            <div className="main-card-heading">
+              <h4>My shifts
+                <button type="button" className="tooltip-custom" data-bs-toggle="tooltip" data-bs-placement="top"
+                        data-bs-title="Tooltip on top">
+                  <img src="/info-icon.png" alt=""/>
+                </button>
+              </h4>
+            </div>
+            <div style={{position: 'relative', top: '17%'}} className="main-card-content nodata">
+              <img src="/empty-data.png" alt=""/>
+              <p>No data</p>
+            </div>
+          </div>
+        </div>
       </div>
-
     </div>
   );
 };

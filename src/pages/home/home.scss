@@ -22,7 +22,8 @@
                 line-height: 1.25;
                 font-weight: 500;
                 display: flex;
-                align-items: self-end;
+                align-items: center;
+                margin: 0;
                 .tooltip-custom {
                     margin-left: 10px;
                     margin-bottom: 1px;
@@ -207,6 +208,33 @@
                         object-fit: contain;
                         border-radius: 50%;
                     }
+                }
+            }
+        }
+    }
+    .col-lg-3.charts {
+        background-color: #151515;
+        padding-right: 0;
+        display: flex;
+        width: 100% !important;
+        .main-card-wrap.charts {
+            width: 240px;
+            .main-card-content.nodata {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                padding: 40px 0;
+                position: relative;
+                top: 17%;
+                img {
+                    width: 110px;
+                    margin: 0 auto 10px;
+                }
+                p {
+                    font-size: 14px;
+                    line-height: 1.2;
+                    color: #808080;
                 }
             }
         }
