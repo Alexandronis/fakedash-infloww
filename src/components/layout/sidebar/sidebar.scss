@@ -10,6 +10,10 @@
     row-gap: 35px;
     .sidebar-main {
         width: 100%;
+        hr {
+            color: #171717;
+            opacity: 1;
+        }
         .sidebar-link-list {
             li {
                 margin-bottom: 5px;
@@ -38,6 +42,31 @@
                     }
                     &:hover {
                         background: #0E0E0E !important;
+                    }
+                }
+                & > a {
+                    &#messages-menu {
+                        position: relative;
+                        .messages-pro-badge {
+                            position: absolute;
+                            right: 42px;
+                            width: 24px;
+                            height: 24px;
+                            padding-top: 3px;
+                            text-align: center;
+                            border-radius: 50%;
+                            background-color: #FB609F;
+                            color: white;
+                            font-size: 15px;
+                            font-weight: initial;
+                        }
+                        .messages-right-icon {
+                            position: absolute;
+                            width: 26px;
+                            height: 26px;
+                            right: 0;
+                            display: block;
+                        }
                     }
                 }
                 & > button {
