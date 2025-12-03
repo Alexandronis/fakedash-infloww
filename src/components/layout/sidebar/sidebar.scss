@@ -12,6 +12,7 @@
         width: 100%;
         .sidebar-link-list {
             li {
+                margin-bottom: 5px;
                 & > a, & > button {
                     padding: 10px 12px;
                     display: flex;
@@ -24,6 +25,7 @@
                     border: 0;
                     border-radius: 10px;
                     font-weight: bold;
+                    position: relative;
                     img {
                         width: 19px;
                         height: 19px;
@@ -53,6 +55,11 @@
                         color: #d6d9df;
                         transition: 0.4s all ease;
                     }
+                    &.active {
+                        &:after {
+                            transform: translateY(-50%) rotate(180deg);
+                        }
+                    }
                 }
                 #of-top-menu {
                     color: white;
@@ -73,11 +80,40 @@
                     &:hover {
                         background: #0E0E0E !important;
                     }
+                    &:after {
+                        transform: translateY(-50%);
+                    }
                 }
                 &:first-child {
                     img {
                         width: 19px;
                         height: 19px;
+                    }
+                }
+                .sub-menu {
+                    margin-top: 5px;
+                    overflow: hidden;
+                    ul {
+                        max-height: 0;
+                        pointer-events: none;
+                        transition: max-height 0.55s ease;
+                        li {
+                            & > a {
+                                padding-left: 25px;
+                                padding-right: 10px;
+                                transition: 0.4s all ease;
+                            }
+                        }
+                    }
+                }
+                button.active {
+                    & + .sub-menu {
+                        display: block;
+                        ul {
+                            display: block;
+                            max-height: 600px;
+                            pointer-events: auto;
+                        }
                     }
                 }
             }

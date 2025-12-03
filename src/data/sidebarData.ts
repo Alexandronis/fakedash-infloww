@@ -1,7 +1,6 @@
 export const sidebarItems = [
   {
     type: "button",                // button or link
-    active: true,
     style: { marginBottom: "30px" },
     id: "of-top-menu",
     icon: "/of-menu-icon.png",
