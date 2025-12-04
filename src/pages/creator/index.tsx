@@ -1,12 +1,53 @@
-import React, { useState } from "react";
-import "./creator.scss";
+import React, { useEffect, useRef, useState } from "react";
 import FilterDialog from "../../components/filterDialog";
+import "./creator.scss";
 
 const CreatorPage: React.FC = () => {
   const [isDialogOpen, setDialogOpen] = useState(false);
 
   const showDialog = () => setDialogOpen(true);
   const closeDialog = () => setDialogOpen(false);
+
+  const dateRangeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!dateRangeRef.current) return;
+
+    // daterangepicker MUST see jQuery + moment globally
+    (window as any).moment = moment;
+
+    // @ts-ignore
+    $(dateRangeRef.current).daterangepicker(
+      {
+        opens: "left",
+        autoUpdateInput: false,
+        alwaysShowCalendars: true,
+        startDate: moment().subtract(7, "days"),
+        endDate: moment(),
+        ranges: {
+          "2025": [moment("2025-01-01"), moment("2025-12-31")],
+          "Last 7 Days": [moment().subtract(6, "days"), moment()],
+          "Last 30 Days": [moment().subtract(29, "days"), moment()],
+          "Last 90 Days": [moment().subtract(89, "days"), moment()],
+          "Last 365 Days": [moment().subtract(364, "days"), moment()],
+          December: [moment("2025-12-01"), moment("2025-12-31")],
+          November: [moment("2025-11-01"), moment("2025-11-30")],
+          October: [moment("2025-10-01"), moment("2025-10-31")],
+          September: [moment("2025-09-01"), moment("2025-09-30")],
+          August: [moment("2025-08-01"), moment("2025-08-31")],
+          July: [moment("2025-07-01"), moment("2025-07-31")],
+          Custom: [moment().subtract(7, "days"), moment()],
+        },
+      },
+      function (start: any, end: any) {
+        dateRangeRef.current!.querySelector("span")!.innerHTML = `
+        <span style="padding: 0 60px 0 10px">${start.format("MMM. DD, YYYY")}</span>
+        <span style="padding: 0 45px 0 0">⇀ ${end.format("MMM. DD, YYYY")}</span>
+      `;
+      }
+    );
+  }, []);
+
 
   return (
     <div className="creator-content">
@@ -22,10 +63,10 @@ const CreatorPage: React.FC = () => {
 
         <div className="header-filter">
           {/* DATE RANGE */}
-          <div id="daterange">
+          <div id="daterange" ref={dateRangeRef}>
             <span>
-              <span style={{ padding: "0 60px 0 10px" }}>Nov. 25, 2025</span>
-              <span style={{ padding: "0 45px 0 0" }}>
+              <span style={{padding: "0 60px 0 10px"}}>Nov. 25, 2025</span>
+              <span style={{padding: "0 45px 0 0"}}>
                 ⇀&nbsp;&nbsp; Nov. 29, 2025
               </span>
             </span>
