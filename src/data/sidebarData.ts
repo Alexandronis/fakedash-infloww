@@ -76,6 +76,18 @@ export const sidebarItems = [
     ],
   },
 
+  {
+    type: "button",
+    icon: "/share-icon.svg",
+    label: "Share for Share",
+    submenu: [
+      { href: "#", icon: "/discover_creators_icon.png", label: "Discover Creators" },
+      { href: "#", icon: "/requests_icon.png", label: "Requests" },
+      { href: "#", icon: "/s4s_schedule_icon.png", label: "S4S Schedule" },
+      { href: "#", icon: "/settings-icon.png", label: "S4S Settings" },
+    ],
+  },
+
   { type: "hr" },
 
   {

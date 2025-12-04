@@ -6,7 +6,7 @@ const HomePage: React.FC = () => {
     <div className="dashboard-content">
       <div className="row">
         <div className="col-12">
-          <div className="main-card-wrap">
+          <div className="main-card-wrap first-main-card-wrap">
             <div className="main-card-heading">
               <h4>
                 Creator earnings overview

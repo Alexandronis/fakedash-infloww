@@ -70,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             type="button"
             className="tooltip-custom info-icon"
             data-bs-toggle="tooltip"
-            style={{marginRight: "10px", marginLeft: "5px"}}
+            style={{marginRight: "13px", marginLeft: "5px", marginTop: "-3px"}}
           >
             <img src="/top-globe-icon.png" alt=""/>
           </button>
@@ -79,7 +79,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             type="button"
             className="tooltip-custom info-icon"
             data-bs-toggle="tooltip"
-            style={{marginRight: "5px", marginLeft: "5px"}}
+            style={{marginRight: "5px", marginLeft: "5px", marginTop: "-3px"}}
             data-bs-placement="top"
             data-bs-title="Tooltip on top"
           >

@@ -10,6 +10,9 @@
         border-radius: 12px;
         background: #262626;
         margin-bottom: 16px;
+        &.first-main-card-wrap {
+            padding: 16px 24px 8px;
+        }
         .main-card-heading {
             display: flex;
             flex-wrap: wrap;
@@ -17,12 +20,13 @@
             justify-content: space-between;
             margin-bottom: 15px;
             h4 {
-                font-family: "Inter", sans-serif;
+                font-family: "Inter", system-ui;
                 font-size: 16px;
                 line-height: 1.25;
                 font-weight: 500;
                 display: flex;
-                align-items: center;
+                align-items: flex-end;
+                letter-spacing: 0.3px;
                 margin: 0;
                 .tooltip-custom {
                     margin-left: 10px;
@@ -39,7 +43,7 @@
                     font-size: 14px;
                     color: #bbb;
                     margin-left: 15px;
-                    font-family: "Inter", sans-serif;
+                    font-family: "Inter", system-ui;
                 }
             }
             .header-filter {
