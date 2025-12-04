@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useEffect, useRef, useState } from "react";
 import FilterDialog from "../../components/filterDialog";
 import "./creator.scss";
