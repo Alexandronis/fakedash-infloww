@@ -132,7 +132,6 @@
                     overflow: hidden;
                     ul {
                         max-height: 0;
-                        pointer-events: none;
                         transition: max-height 0.55s ease;
                         li {
                             & > a {
@@ -149,7 +148,6 @@
                         ul {
                             display: block;
                             max-height: 600px;
-                            pointer-events: auto;
                         }
                     }
                 }
@@ -164,5 +162,85 @@
         padding-left: 7px;
         padding-right: 10px;
         overflow: unset;
+        .sidebar-main {
+            .version {
+                display: none;
+            }
+        }
+        .sidebar-link-list {
+            li {
+                margin-bottom: 3px;
+                position: relative;
+                z-index: 2;
+                & > a, & > button {
+                    font-size: 0;
+                    justify-content: center;
+                    padding: 8.5px 6px;
+                    border-radius: 8px;
+                    font-family: "Inter", sans-serif;
+                    img {
+                        width: 19px;
+                        height: 19px;
+                        object-fit: contain;
+                        margin-right: 0;
+                    }
+                    &:after {
+                        display: none;
+                    }
+                    &#messages-menu {
+                        .messages-right-icon {
+                            display: none;
+                        }
+                    }
+                }
+                &:first-child {
+                    img {
+                        width: 19px;
+                        height: 19px;
+                    }
+                }
+                .sub-menu {
+                    position: absolute;
+                    left: 100%;
+                    top: 0;
+                    width: 250px;
+                    padding: 0 0 0 10px;
+                    margin: 0;
+                    display: none !important;
+                    border-radius: 5px;
+                    overflow: hidden;
+                    ul {
+                        max-height: 440px;
+                        overflow-y: auto;
+                        overflow-x: hidden;
+                        background: #000;
+                        border-radius: 5px;
+                        padding: 10px 5px;
+                        li {
+                            a {
+                                border-radius: 5px;
+                                justify-content: flex-start;
+                                font-size: 18px;
+                                padding: 10px 5px;
+                                img {
+                                    margin-right: 8px;
+                                }
+                            }
+                        }
+                    }
+                }
+                &:hover {
+                    .sub-menu {
+                        display: block !important;
+                    }
+                }
+            }
+        }
+        #of-top-menu {
+            padding-left: 10px !important;
+            .of-badge {
+                display: none !important;
+            }
+        }
     }
 }
