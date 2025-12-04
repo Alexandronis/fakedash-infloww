@@ -1,7 +1,13 @@
-import React from 'react';
-import './creator.scss';
+import React, { useState } from "react";
+import "./creator.scss";
+import FilterDialog from "../../components/filterDialog";
 
 const CreatorPage: React.FC = () => {
+  const [isDialogOpen, setDialogOpen] = useState(false);
+
+  const showDialog = () => setDialogOpen(true);
+  const closeDialog = () => setDialogOpen(false);
+
   return (
     <div className="creator-content">
       <div className="header-title">
@@ -18,8 +24,8 @@ const CreatorPage: React.FC = () => {
           {/* DATE RANGE */}
           <div id="daterange">
             <span>
-              <span style={{ padding: '0 60px 0 10px' }}>Nov. 25, 2025</span>
-              <span style={{ padding: '0 45px 0 0' }}>
+              <span style={{ padding: "0 60px 0 10px" }}>Nov. 25, 2025</span>
+              <span style={{ padding: "0 45px 0 0" }}>
                 ⇀&nbsp;&nbsp; Nov. 29, 2025
               </span>
             </span>
@@ -42,11 +48,11 @@ const CreatorPage: React.FC = () => {
             </svg>
           </div>
 
-          {/* HIDDEN DATE RANGE */}
-          <div className="daterange1" style={{ display: 'none' }}>
+          {/* Hidden date range */}
+          <div className="daterange1" style={{ display: "none" }}>
             <span>
-              <span style={{ padding: '0 60px 0 10px' }}>Nov. 25, 2025</span>
-              <span style={{ padding: '0 45px 0 0' }}>
+              <span style={{ padding: "0 60px 0 10px" }}>Nov. 25, 2025</span>
+              <span style={{ padding: "0 45px 0 0" }}>
                 ⇀&nbsp;&nbsp; Nov. 29, 2025
               </span>
             </span>
@@ -69,13 +75,13 @@ const CreatorPage: React.FC = () => {
             </svg>
           </div>
 
-          {/* SHOWN BY DROPDOWN */}
+          {/* Shown by dropdown */}
           <div className="dropdown header-shown_by">
             <button
               className="dropdown-toggle border-0 text-start w-100"
               data-bs-toggle="dropdown"
               aria-expanded="false"
-              style={{ backgroundColor: 'transparent', appearance: 'none' }}
+              style={{ backgroundColor: "transparent", appearance: "none" }}
             >
               Shown by week
             </button>
@@ -104,7 +110,7 @@ const CreatorPage: React.FC = () => {
             </ul>
           </div>
 
-          {/* TOOLTIP BUTTON */}
+          {/* Tooltip button */}
           <button
             type="button"
             className="tooltip-custom"
@@ -115,13 +121,13 @@ const CreatorPage: React.FC = () => {
             <img src="/info-icon.png" alt="" />
           </button>
 
-          {/* EARNINGS DROPDOWN */}
+          {/* Earnings dropdown */}
           <div className="dropdown" id="earnings-select">
             <button
               className="dropdown-toggle border-0 text-start w-100"
               data-bs-toggle="dropdown"
               aria-expanded="false"
-              style={{ backgroundColor: 'transparent', appearance: 'none' }}
+              style={{ backgroundColor: "transparent", appearance: "none" }}
             >
               Net earnings
             </button>
@@ -140,8 +146,8 @@ const CreatorPage: React.FC = () => {
             </ul>
           </div>
 
-          {/* FILTER BUTTON */}
-          <span className="header-span_filter" onClick={() => showDialog()}>
+          {/* Filter button */}
+          <span className="header-span_filter" onClick={showDialog}>
             <svg
               aria-hidden="true"
               xmlns="http://www.w3.org/2000/svg"
@@ -160,111 +166,8 @@ const CreatorPage: React.FC = () => {
             Filters
           </span>
 
-          {/* FILTER DIALOG */}
-          <div
-            id="filterDialog"
-            style={{
-              display: 'none',
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              height: '228px',
-              width: '600px',
-              backgroundColor: '#2F2F2F',
-              color: 'white',
-              borderRadius: '10px',
-              margin: 0,
-              padding: 0,
-            }}
-          >
-            <h6
-              style={{
-                marginBottom: '15px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                padding: '20px 20px 2px 10px',
-              }}
-            >
-              Filter Options
-            </h6>
-
-            <div
-              style={{
-                width: '600px',
-                backgroundColor: '#262626',
-                padding: '20px 15px',
-                borderRadius: 0,
-              }}
-            >
-              <label htmlFor="creator" style={{ fontSize: '15px', width: '100%' }}>
-                Filter by Creator(s)
-              </label>
-
-              <select
-                id="creator"
-                style={{
-                  width: '100%',
-                  height: '45px',
-                  marginTop: '10px',
-                  borderRadius: '5px',
-                  backgroundColor: '#211f1f',
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '13px',
-                  paddingLeft: '10px',
-                  paddingRight: '25px',
-                  position: 'relative',
-                }}
-              >
-                <option style={{ fontSize: '12px' }}>Select Creator</option>
-              </select>
-            </div>
-
-            {/* BUTTONS */}
-            <div
-              style={{
-                outline: 'none',
-                textAlign: 'right',
-                width: '100%',
-                paddingTop: '7px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => closeDialog()}
-                style={{
-                  padding: '0px 15px',
-                  backgroundColor: 'transparent',
-                  color: 'white',
-                  cursor: 'pointer',
-                  borderRadius: '5px',
-                  border: '1px solid #444444',
-                  fontSize: '14px',
-                  width: '77px',
-                  height: '35px',
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                style={{
-                  padding: '0px 15px',
-                  backgroundColor: '#3467FF',
-                  color: 'white',
-                  cursor: 'pointer',
-                  borderRadius: '5px',
-                  border: 'none',
-                  fontSize: '14px',
-                  width: '77px',
-                  height: '35px',
-                }}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
+          {/* New Filter Dialog Component */}
+          <FilterDialog isOpen={isDialogOpen} onClose={closeDialog} />
         </div>
       </div>
     </div>

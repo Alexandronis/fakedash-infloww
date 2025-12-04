@@ -115,6 +115,9 @@
                         color: #2D74FF !important;
                         background-color: #353535 !important;
                     }
+                    &.disabled {
+                        color: #535353;
+                    }
                 }
             }
             .header-shown_by {
