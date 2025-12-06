@@ -4,6 +4,7 @@ import HighchartGraph from "../../components/charts/earningsTrends.tsx";
 import EarningsSummary from "../../components/creatorPage/EarningsSummary.tsx";
 import TopFilters from "../../components/creatorPage/TopFilters.tsx";
 import CreatorStatistics from "../../components/creatorPage/CreatorStatistics.tsx";
+import EarningsByChannelGraph from "../../components/charts/earningsByChannel.tsx";
 import "./creator.scss";
 
 const CreatorPage: React.FC = () => {
@@ -17,6 +18,7 @@ const CreatorPage: React.FC = () => {
         <EarningsSummary />
       </div>
       <HighchartGraph containerId="earnings-chart" />
+      <EarningsByChannelGraph />
       <CreatorStatistics />
     </div>
   );

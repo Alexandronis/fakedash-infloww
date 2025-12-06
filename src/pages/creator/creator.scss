@@ -419,6 +419,87 @@
             }
         }
     }
+    .earnings-by-channel-wrapper {
+        h6 {
+            .tooltip-custom {
+                border: 0;
+                background: transparent;
+                display: inline-flex;
+                .charts-title {
+                    height: 15px;
+                    margin-left: 4px;
+                    width: 15px;
+                }
+            }
+        }
+        #chartContainer {
+            display: flex;
+            align-items: flex-start;
+            gap: 70px;
+            padding: 20px;
+            height: 300px;
+            #earningsChart {
+                flex: 1;
+                max-width: 70%;
+            }
+            .legend {
+                font-family: Arial, sans-serif;
+                width: 30%;
+                height: 400px;
+                ul {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                    .item {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 29px;
+                        div {
+                            flex: 1;
+                            text-align: center;
+                        }
+                        .info {
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            flex: 2;
+                        }
+                        p {
+                            margin: 0;
+                            font-size: 13px;
+                            color: white;
+                            font-weight: bold;
+                        }
+                        span {
+                            display: inline-block;
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 50%;
+                            &.subscriptions {
+                                background-color: #3467FF;
+                            }
+                            &.tips {
+                                background-color: #2AD4AC;
+                            }
+                            &.posts {
+                                background-color: #FC6767;
+                            }
+                            &.messages {
+                                background-color: #FFA553;
+                            }
+                            &.referrals {
+                                background-color: #34C2FF;
+                            }
+                            &.streams {
+                                background-color: #CA34FF;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 .menu-close {
