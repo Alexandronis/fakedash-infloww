@@ -29,7 +29,7 @@ const CreatorPage: React.FC = () => {
       }
     },
     title: {
-      text: `Earnings trends <button type="button" class="tooltip-custom" style="position: relative; top: 3px; left: 6px;"><img class="charts-title" alt="" src="images/info-icon.png"></button>`,
+      text: `Earnings trends <button type="button" class="tooltip-custom"><img class="charts-title" alt="" src="/info-icon.png"></button>`,
       useHTML: true,
       align: "left",
       margin: 15,
@@ -488,7 +488,7 @@ const CreatorPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <HighchartGraph options={earningsOptions} />
+      <HighchartGraph options={earningsOptions} containerId="earnings-chart" />
     </div>
   );
 };

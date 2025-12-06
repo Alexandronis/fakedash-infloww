@@ -207,6 +207,7 @@
                         width: 15px;
                         height: 15px;
                         margin-bottom: 1px;
+                        margin-left: 2px;
                     }
                 }
             }
@@ -440,5 +441,25 @@
     }
     .drp-buttons {
         display: none !important;
+    }
+}
+
+/* Highcharts custom styles */
+#earnings-chart {
+    height: 350px;
+    margin: -8px 24px 0 24px;
+    button {
+        &.tooltip-custom {
+            border: 0;
+            background: transparent;
+            display: inline-flex;
+            position: relative;
+            top: 3px;
+            img {
+                width: 15px;
+                height: 15px;
+                margin-left: 6px;
+            }
+        }
     }
 }
