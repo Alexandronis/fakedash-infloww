@@ -126,6 +126,11 @@ const CreatorPage: React.FC = () => {
     },
     plotOptions: {
       column: {
+        dragDrop: {
+          draggableY: true // Enable dragging vertically
+        },
+        allowPointSelect: true,
+        cursor: 'ns-resize',
         animation: { duration: 1000 },
         borderColor: "#ffffff",
         borderWidth: 0,
@@ -136,6 +141,15 @@ const CreatorPage: React.FC = () => {
         states: {
           hover: { brightness: 0.1, color: "#3971FF" },
           select: { color: "#cccccc", borderColor: "#000000" }
+        },
+        point: {
+          events: {
+            drop: function (event) {
+              const chart = this.series.chart;
+              const maxVal = Math.max(...this.series.data.map(p => p.y), event.newY);
+              chart.yAxis[0].setExtremes(0, maxVal > 10 ? maxVal + 10 : 10);
+            }
+          }
         },
         color: "#3467FF"
       }
@@ -475,9 +489,6 @@ const CreatorPage: React.FC = () => {
         </div>
       </div>
       <HighchartGraph options={earningsOptions} />
-      <div id="earnings-chart" data-highcharts-chart="0" style={{ overflow: 'hidden' }}>
-
-      </div>
     </div>
   );
 };
