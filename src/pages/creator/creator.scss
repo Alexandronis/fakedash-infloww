@@ -287,6 +287,138 @@
             }
         }
     }
+    .stats-wrap {
+        padding: 16px 24px;
+        border-radius: 12px;
+        background: transparent;
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            h6 {
+                font-family: "Calibri", sans-serif;
+                font-size: 16px;
+            }
+            .metrics-and-export {
+                display: flex;
+                align-items: center;
+                gap: 0;
+                .custom-metrics-container {
+                    display: flex;
+                    align-items: center;
+                    margin-right: 0;
+                    background-color: transparent;
+                    .custom-metrics-button {
+                        display: flex;
+                        align-items: center;
+                        background-color: transparent;
+                        border: none;
+                        padding: 8px 12px;
+                        cursor: pointer;
+                        font-family: 'Calibri', sans-serif;
+                        font-size: 13.4px;
+                        .icon {
+                            margin-right: 8px;
+                            font-size: 16px;
+                            color: #888;
+                            svg {
+                                width: 16px;
+                                height: 16px;
+                                fill: #888;
+                            }
+                        }
+                    }
+                }
+                .header-span_filter {
+                    display: flex;
+                    align-items: center;
+                    color: #007bff;
+                    font-size: 13px;
+                    font-weight: 400;
+                    font-style: normal;
+                    border: 1px solid #3467FF;
+                    padding: 3px 5px;
+                    border-radius: 4px;
+                    height: 22px;
+                    margin-left: 15px;
+                    svg {
+                        margin-right: 5px;
+                    }
+                }
+            }
+        }
+        .card {
+            background: transparent;
+            border-radius: 8px;
+            padding: 30px 20px;
+            width: calc(25% - 20px);
+            border-color: #434343;
+            .card-content {
+                .display-5 {
+                    font-weight: bold;
+                    font-family: "Inter";
+                    font-size: 28px;
+                    color: white;
+                    line-height: 1.2;
+                }
+                .card-title {
+                    font-size: 13px;
+                    color: #7b7b7b;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin: 0;
+                    .info-btn {
+                        background: none;
+                        border: none;
+                        cursor: pointer;
+                        padding: 0;
+                        margin-left: 8px;
+                    }
+                }
+            }
+        }
+        .table-container {
+            margin-top: 20px;
+            width: 100%;
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+                background-color: #0f0e0e;
+                th {
+                    cursor: pointer;
+                    border-right: 1px solid #2c2b2b;
+                    &:first-child {
+                        border-top-left-radius: 10px;
+                    }
+                    &:last-child {
+                        border-top-right-radius: 10px;
+                    }
+                }
+            }
+        }
+        .main-card-wrap {
+            .main-card-content.nodata {
+                border: none;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                img {
+                    width: 110px;
+                    margin: 0 auto 10px;
+                }
+                p {
+                    font-size: 14px;
+                    line-height: 1.2;
+                    color: #808080;
+                }
+            }
+        }
+    }
 }
 
 .menu-close {
