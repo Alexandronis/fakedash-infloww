@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useSettings } from "../../../context/SettingsContext";
-import "./balanceModal.scss";
+import "./settingsModal.scss";
 
-const BalanceModal = ({ isOpen, onClose }: any) => {
+const SettingsModal = ({ isOpen, onClose }: any) => {
   const { i18n } = useTranslation();
   const { totalEarnings, setTotalEarnings, currencySign, setCurrencySign } = useSettings();
   const [value, setValue] = useState(totalEarnings.toFixed(2));
@@ -106,4 +106,4 @@ const BalanceModal = ({ isOpen, onClose }: any) => {
   );
 };
 
-export default BalanceModal;
+export default SettingsModal;
