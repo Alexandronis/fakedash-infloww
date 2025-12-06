@@ -264,7 +264,7 @@ const EarningsByChannelGraph: React.FC = () => {
         Track trends and growth of your managed Creators’ earning channels
       </div>
       <div id="chartContainer">
-        <div style={{ position: "relative", height: "260px", width: "730.1px" }}>
+        <div style={{ position: "relative", height: "260px", width: "706px" }}>
           <canvas
             ref={canvasRef}
             style={{
@@ -346,7 +346,7 @@ const EarningsByChannelGraph: React.FC = () => {
                 <span className="referrals"></span>
                 <p>Referrals</p>
               </div>
-              <div style={{fontSize: "12px", color: "white"}}>0%</div>
+              <div style={{fontSize: "12px", color: "white"}}>0.00%</div>
               <div className="streams-earning" style={{fontSize: "12px", color: "white"}}>
                 $0.00
               </div>
