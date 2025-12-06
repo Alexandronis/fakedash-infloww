@@ -177,10 +177,268 @@
             }
         }
     }
+    .main-card-wrap {
+        border: none;
+        background: transparent;
+        padding: 16px 24px;
+        border-radius: 12px;
+        .main-card-heading {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            h4 {
+                font-family: "Inter", sans-serif;
+                font-size: 15px;
+                line-height: 1.25;
+                font-weight: 500;
+                display: flex;
+                align-items: flex-end;
+                letter-spacing: -0.1px;
+                margin: 0;
+                .tooltip-custom {
+                    margin-left: 10px;
+                    margin-bottom: 1px;
+                    border: 0;
+                    background: transparent;
+                    display: inline-flex;
+                    img {
+                        width: 15px;
+                        height: 15px;
+                        margin-bottom: 1px;
+                    }
+                }
+            }
+        }
+        .main-card-content {
+            display: flex;
+            flex-wrap: wrap;
+            .overview-col {
+                padding: 20px 35px;
+                border-right: 1px solid #464646;
+                width: 25%;
+                &:last-child {
+                    border-right: 0;
+                }
+                .overview-inner {
+                    padding: 4px 0;
+                    img {
+                        width: 44px;
+                        margin-bottom: 20px;
+                    }
+                    p {
+                        font-size: 12px;
+                        line-height: 1.2;
+                        color: #1890F1;
+                        font-weight: 600;
+                        margin-bottom: 16px;
+                        font-family: "Segoe UI", sans-serif;
+                    }
+                    h5 {
+                        font-family: system-ui;
+                        letter-spacing: -0.9px;
+                        font-size: 32px;
+                        line-height: 1.2;
+                        color: #2d74ff;
+                        font-weight: 700;
+                        .dollar-sign {
+                            position: relative;
+                            top: -1px;
+                            left: -1px;
+                            font-family: "Inter", sans-serif !important;
+                        }
+                    }
+                }
+                .overview-card {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 55px;
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+                    .card-content {
+                        padding-right: 15px;
+                        width: calc(100% - 45px);
+                        h5 {
+                            font-family: system-ui;
+                            letter-spacing: -0.9px;
+                            font-size: 21px;
+                            line-height: 1.2;
+                            color: white;
+                            font-weight: 700;
+                            margin-bottom: 2px;
+                        }
+                        p {
+                            font-size: 13px;
+                            line-height: 1.2;
+                            color: #808080;
+                        }
+                    }
+                    & > img {
+                        width: 45px;
+                        height: 45px;
+                        object-fit: contain;
+                        border-radius: 50%;
+                    }
+                }
+            }
+        }
+    }
 }
 
 .menu-close {
     .creator-content {
         width: calc(100% - 52px);
+    }
+}
+
+.daterangepicker {
+    height: 320px;
+    font-weight: 300;
+    border: none;
+    -webkit-box-shadow: 0 2px 3px 0 rgba(209, 209, 209, 0.15);
+    box-shadow: 0 2px 3px 0 rgba(209, 209, 209, 0.15);
+    border-radius: 10px;
+    background-color: #2F2F2F;
+    .ranges {
+        ul {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(140px, 1fr));
+            grid-auto-rows: 25px;
+            grid-template-rows: repeat(6, 24px);
+            width: 280px !important;
+            row-gap: 21px;
+            li {
+                page-break-inside: avoid;
+                border: 1px solid #444444;
+                margin: 0 10px;
+                border-radius: 4px;
+                text-align: center;
+                padding: 4px 12px !important;
+                height: 32px;
+                line-height: 22px;
+                background-color: transparent;
+                color: #fff;
+                font-size: 15px;
+                overflow: hidden;
+                &[data-range-key="2025"] {
+                    order: -3;
+                }
+                &[data-range-key="Last 7 Days"] {
+                    order: -11;
+                }
+                &[data-range-key="Last 30 Days"] {
+                    order: -9;
+                }
+                &[data-range-key="Last 90 Days"] {
+                    order: -7;
+                }
+                &[data-range-key="Last 365 Days"] {
+                    order: -5;
+                }
+                &[data-range-key="December"] {
+                    order: -12;
+                }
+                &[data-range-key="November"] {
+                    order: -10;
+                }
+                &[data-range-key="October"] {
+                    order: -8;
+                }
+                &[data-range-key="September"] {
+                    order: -6;
+                }
+                &[data-range-key="August"] {
+                    order: -4;
+                }
+                &[data-range-key="July"] {
+                    order: -2;
+                }
+                &[data-range-key="Custom"], &[data-range-key="Custom Range"] {
+                    order: -13;
+                }
+                &:hover {
+                    background-color: transparent;
+                    border-color: #4096FF;
+                    color: #4096FF;
+                }
+                &.active {
+                    background-color: #3467FF;
+                    border-color: #3467FF;
+                    color: #fff;
+                    &:hover {
+                        background-color: #4096FF;
+                        border-color: #4096FF;
+                        color: #fff;
+                    }
+                }
+            }
+        }
+    }
+    .drp-calendar {
+        &.left {
+            border-left: none !important;
+        }
+        .calendar-table {
+            border-style: none;
+            background-color: unset;
+            th {
+                font-size: 15px;
+                font-weight: 300;
+            }
+            table {
+                width: 100%;
+                margin: 0;
+                border-collapse: separate;
+                border-spacing: 0 9px;
+                &.table-condensed {
+                    height: 300px;
+                    background-color: #2F2F2F;
+                    padding: 0;
+                    tr {
+                        th {
+                            padding: 0;
+                            background-color: #2F2F2F;
+                            border-bottom: #151515 !important;
+                            color: #fff;
+                            position: relative;
+                            &.next, &.prev {
+                                span {
+                                    border-color: #cfcfcf;
+                                }
+                            }
+                            &.month {
+                                font-weight: 700 !important;
+                                font-size: 16px !important;
+                            }
+                        }
+                    }
+                    tbody {
+                        tr {
+                            td {
+                                font-size: 15px;
+                                &.off {
+                                    background-color: transparent !important;
+                                    padding: 0 !important;
+                                    margin: 2px;
+                                }
+                                &.in-range {
+                                    background-color: #404144 !important;
+                                    color: #fff !important;
+                                }
+                                &.active {
+                                    background-color: #1677FF !important;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    .drp-buttons {
+        display: none !important;
     }
 }
