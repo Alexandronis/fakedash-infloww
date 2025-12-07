@@ -4,8 +4,7 @@ import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import DraggableModule from "highcharts/modules/draggable-points";
 
-// === VITE FIX: Initialize the module safely ===
-// Sometimes Vite imports CJS modules as { default: fn }
+// Initialize module safely
 if (typeof DraggableModule === "function") {
   DraggableModule(Highcharts);
 } else if (typeof DraggableModule === "object" && (DraggableModule as any).default) {
@@ -14,7 +13,6 @@ if (typeof DraggableModule === "function") {
 
 type HighchartGraphProps = {
   containerId?: string;
-  // allowing override of options if needed
   options?: Highcharts.Options;
 };
 
@@ -95,7 +93,8 @@ const earningsOptions: Highcharts.Options = {
     lineColor: "#707073",
     lineWidth: 0,
     tickColor: "#707073",
-    tickInterval: 10,
+    // CHANGED: Smaller interval so the axis doesn't need to jump by 10s
+    tickInterval: 5,
     endOnTick: true
   }],
   tooltip: {
@@ -121,7 +120,6 @@ const earningsOptions: Highcharts.Options = {
   },
   plotOptions: {
     series: {
-      // === GLOBAL SERIES CONFIG FOR DRAG ===
       dragDrop: {
         draggableY: true,
         dragMinY: 0,
@@ -132,24 +130,26 @@ const earningsOptions: Highcharts.Options = {
       point: {
         events: {
           drop: function (e) {
-            // Check if newPoint exists (it contains the drag result)
             if (e.newPoint) {
-              console.log("New Y:", e.newPoint.y);
-
-              // Example: Auto-expand Y-axis logic
-              // We use `this.series.data` to check existing points
-              // but remember the dragged point value is in `e.newPoint.y`
               const chart = this.series.chart;
 
-              // Just a visual fix: ensure axis fits the new point
-              const maxVal = Math.max(e.newPoint.y, ...this.series.data.map(p => p.y || 0));
-              const currentMax = chart.yAxis[0].max;
+              // 1. Get all points including the new dragged value
+              const allY = this.series.data.map(p => (p.id === this.id ? e.newPoint.y : p.y));
+              const maxVal = Math.max(...allY);
 
-              // Add buffer
-              const neededMax = maxVal > 10 ? maxVal + 10 : 10;
+              // 2. Snap to the next multiple of 5 (e.g. 12 -> 15, 16 -> 20)
+              // This prevents adding huge buffers like +10 or +100
+              let newMax = Math.ceil(maxVal / 5) * 5;
 
-              if (neededMax > currentMax) {
-                chart.yAxis[0].setExtremes(0, neededMax);
+              // If the value is exactly on the line, add one step of breathing room
+              if (newMax === maxVal) newMax += 5;
+
+              // Ensure minimum height of 10
+              if (newMax < 10) newMax = 10;
+
+              // Only update if it actually changed
+              if (newMax !== chart.yAxis[0].max) {
+                chart.yAxis[0].setExtremes(0, newMax);
               }
             }
           }
@@ -175,7 +175,6 @@ const earningsOptions: Highcharts.Options = {
     name: "Earnings",
     type: "column",
     color: "#3467FF",
-    // === USE OBJECT SYNTAX FOR POINTS ===
     data: [{ y: 8.75 }, { y: 0 }],
     animation: false,
     dataLabels: { enabled: false }
@@ -183,9 +182,6 @@ const earningsOptions: Highcharts.Options = {
 };
 
 const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
-  // We use a ref to ensure we don't re-init options unnecessarily
-  // but HighchartsReact handles updates well.
-
   return (
     <HighchartsReact
       highcharts={Highcharts}
