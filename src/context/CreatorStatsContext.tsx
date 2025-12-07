@@ -4,7 +4,6 @@ import Cookies from "js-cookie";
 
 const defaultChannels = ["subscriptions", "tips", "posts", "referrals", "messages", "streams"];
 
-// Default values
 const defaultStats = {
   total: 0,
   subscriptions: 0,
@@ -16,8 +15,8 @@ const defaultStats = {
 };
 
 const defaultFilters = {
-  dateRange: "2023-11-30_2023-12-13", // as an example, format: YYYY-MM-DD_YYYY-MM-DD
-  viewMode: "week", // can be "day" or "week"
+  dateRange: "2023-11-30_2023-12-13",
+  viewMode: "week",
 };
 
 const COOKIE_KEY = "creatorStats";
@@ -34,16 +33,15 @@ const CreatorStatsContext = createContext({
 
 export const useCreatorStats = () => useContext(CreatorStatsContext);
 
-function calculateRatios(current: typeof defaultStats) {
-  const children = defaultChannels.map((channel) => current[channel]);
+function calculateRatios(current) {
+  const children = defaultChannels.map(channel => current[channel] || 0);
   const sum = children.reduce((a, b) => a + b, 0);
   return sum === 0
     ? children.map(() => 0)
-    : children.map((v) => v / sum);
+    : children.map(v => v / sum);
 }
 
-function recalcChildrenFromTotal(channels: typeof defaultStats, newTotal: number) {
-  // Recalculate child values preserving their ratios
+function recalcChildrenFromTotal(channels, newTotal) {
   const ratios = calculateRatios(channels);
   const newChannels = { ...channels };
   ratios.forEach((ratio, idx) => {
@@ -54,116 +52,145 @@ function recalcChildrenFromTotal(channels: typeof defaultStats, newTotal: number
   return newChannels;
 }
 
-function recalcTotalFromChildren(channels: typeof defaultStats) {
-  const total =
-    defaultChannels.reduce((sum, c) => sum + (channels[c] || 0), 0);
+function recalcTotalFromChildren(channels) {
+  const total = defaultChannels.reduce((sum, c) => sum + (channels[c] || 0), 0);
   return { ...channels, total: Number(total.toFixed(2)) };
 }
 
-export const CreatorStatsProvider: React.FC<{ children: any }> = ({ children }) => {
-  // Structure: { [filterKey]: { stats } }
-  const [filters, setFilters] = useState({ ...defaultFilters });
-  const [statsByFilter, setStatsByFilter] = useState<{ [filterKey: string]: typeof defaultStats }>({});
-
-  // Utility: filterKey
-  const filterKey = `${filters.dateRange}:${filters.viewMode}`;
-
-  // Load from cookie
-  useEffect(() => {
+export const CreatorStatsProvider = ({ children }) => {
+  // Initial load from cookie or start with defaults:
+  const [filters, setFilters] = useState(() => {
     const cookieRaw = Cookies.get(COOKIE_KEY);
     if (cookieRaw) {
       try {
         const parsed = JSON.parse(cookieRaw);
-        setStatsByFilter(parsed.statsByFilter ?? {});
-        setFilters(parsed.filters ?? defaultFilters);
-      } catch (e) {
-        // Cookie corrupted
-        setStatsByFilter({});
-        setFilters(defaultFilters);
+        return parsed.filters || { ...defaultFilters };
+      } catch {
+        return { ...defaultFilters };
+      }
+    }
+    return { ...defaultFilters };
+  });
+
+  const [statsByFilter, setStatsByFilter] = useState(() => {
+    const cookieRaw = Cookies.get(COOKIE_KEY);
+    if (cookieRaw) {
+      try {
+        const parsed = JSON.parse(cookieRaw);
+        // Always make sure at least one entry for the initial filterKey exists!
+        const initialFKey = `${parsed.filters?.dateRange || defaultFilters.dateRange}:${parsed.filters?.viewMode || defaultFilters.viewMode}`;
+        return {
+          ...parsed.statsByFilter,
+          [initialFKey]: parsed.statsByFilter?.[initialFKey] || { ...defaultStats }
+        };
+      } catch {
+        const initialFKey = `${defaultFilters.dateRange}:${defaultFilters.viewMode}`;
+        return { [initialFKey]: { ...defaultStats } };
       }
     } else {
-      // First visit: initialize
-      setStatsByFilter({
-        [filterKey]: { ...defaultStats },
-      });
-      setFilters(defaultFilters);
+      const initialFKey = `${defaultFilters.dateRange}:${defaultFilters.viewMode}`;
+      return { [initialFKey]: { ...defaultStats } };
     }
-    // eslint-disable-next-line
-  }, []);
+  });
 
-  // Persist to cookie whenever stats or filters change
-  useEffect(() => {
-    Cookies.set(COOKIE_KEY, JSON.stringify({ statsByFilter, filters }), { expires: 365 });
-  }, [statsByFilter, filters]);
+  // Helper to always flush to cookie right after state change
+  function persistCookie(newStatsByFilter, newFilters) {
+    Cookies.set(
+      COOKIE_KEY,
+      JSON.stringify({ statsByFilter: newStatsByFilter, filters: newFilters }),
+      { expires: 365 }
+    );
+  }
 
-  // Current stats slice
-  const stats = statsByFilter[filterKey] ?? { ...defaultStats };
+  // Compose filterKey
+  const filterKey = `${filters.dateRange}:${filters.viewMode}`;
 
   // --- Updaters ---
-  const setDateRange = useCallback((range: string) => {
-    setFilters((f) => {
+  const setDateRange = useCallback(range => {
+    setFilters(f => {
       const newFilters = { ...f, dateRange: range };
-      const newKey = `${range}:${f.viewMode}`;
-      setStatsByFilter((statsByFilter) => ({
-        ...statsByFilter,
-        [newKey]: statsByFilter[newKey] ?? { ...defaultStats },
-      }));
+      // Immediately update statsByFilter for new filterKey (if missing)
+      setStatsByFilter(prevStats => {
+        const newKey = `${range}:${newFilters.viewMode}`;
+        const updated = {
+          ...prevStats,
+          [newKey]: prevStats[newKey] ?? { ...defaultStats },
+        };
+        persistCookie(updated, newFilters);
+        return updated;
+      });
+      persistCookie(statsByFilter, newFilters);
       return newFilters;
     });
-  }, []);
+  }, [statsByFilter]);
 
-  const setViewMode = useCallback((mode: "day" | "week") => {
-    setFilters((f) => {
+  const setViewMode = useCallback(mode => {
+    setFilters(f => {
       const newFilters = { ...f, viewMode: mode };
-      const newKey = `${f.dateRange}:${mode}`;
-      setStatsByFilter((statsByFilter) => ({
-        ...statsByFilter,
-        [newKey]: statsByFilter[newKey] ?? { ...defaultStats },
-      }));
+      setStatsByFilter(prevStats => {
+        const newKey = `${newFilters.dateRange}:${mode}`;
+        const updated = {
+          ...prevStats,
+          [newKey]: prevStats[newKey] ?? { ...defaultStats }
+        };
+        persistCookie(updated, newFilters);
+        return updated;
+      });
+      persistCookie(statsByFilter, newFilters);
       return newFilters;
     });
-  }, []);
+  }, [statsByFilter]);
 
-  const updateTotalEarnings = useCallback((value: number) => {
-    setStatsByFilter((prev) => ({
-      ...prev,
-      [filterKey]: recalcChildrenFromTotal(prev[filterKey] ?? defaultStats, value),
-    }));
-  }, [filterKey]);
+  const updateTotalEarnings = useCallback(value => {
+    setStatsByFilter(prev => {
+      const existing = prev[filterKey] ?? { ...defaultStats };
+      const updated = {
+        ...prev,
+        [filterKey]: recalcChildrenFromTotal(existing, value),
+      };
+      persistCookie(updated, filters);
+      return updated;
+    });
+  }, [filterKey, filters]);
 
-  const updateChannelValue = useCallback((channel: string, value: number) => {
+  const updateChannelValue = useCallback((channel, value) => {
     if (!defaultChannels.includes(channel)) return;
-    setStatsByFilter((prev) => {
-      const newChannels = { ...(prev[filterKey] ?? defaultStats) };
+    setStatsByFilter(prev => {
+      const existing = prev[filterKey] ?? { ...defaultStats };
+      const newChannels = { ...existing };
       newChannels[channel] = Number(value.toFixed(2));
-      // recalc total
-      return {
+      const updated = {
         ...prev,
         [filterKey]: recalcTotalFromChildren(newChannels),
       };
+      persistCookie(updated, filters);
+      return updated;
     });
-  }, [filterKey]);
+  }, [filterKey, filters]);
 
   const resetStats = useCallback(() => {
-    setStatsByFilter((prev) => ({
-      ...prev,
-      [filterKey]: { ...defaultStats },
-    }));
-  }, [filterKey]);
+    setStatsByFilter(prev => {
+      const updated = { ...prev, [filterKey]: { ...defaultStats } };
+      persistCookie(updated, filters);
+      return updated;
+    });
+  }, [filterKey, filters]);
 
-  // --- Context Value ---
-  const value = {
+  // Always read latest for UI
+  const stats = statsByFilter[filterKey] ?? { ...defaultStats };
+
+  const ctx = {
     stats,
     filters,
     updateTotalEarnings,
     updateChannelValue,
     setDateRange,
     setViewMode,
-    resetStats
+    resetStats,
   };
 
   return (
-    <CreatorStatsContext.Provider value={value}>
+    <CreatorStatsContext.Provider value={ctx}>
       {children}
     </CreatorStatsContext.Provider>
   );

@@ -1,17 +1,13 @@
 import React from "react";
 import { useCreatorStats } from '../../context/CreatorStatsContext.tsx';
+import EditableEarningsField from '../editableEarningsField';
 
 const EarningsSummary: React.FC = () => {
   const {
     stats,
-    filters,
     updateTotalEarnings,
     updateChannelValue,
-    setDateRange,
-    setViewMode,
   } = useCreatorStats();
-
-  console.log(stats);
 
   return (
     <div className="main-card-wrap">
@@ -34,29 +30,22 @@ const EarningsSummary: React.FC = () => {
           <div className="overview-inner">
             <img src="/of-icon.svg" alt=""/>
             <p>Total earnings</p>
-            <h5 className="total-earning" id="editableText">
-              <span
-                className="dollar-sign"
-                style={{
-                  fontSize: '24px',
-                  color: '#2D74FF',
-                  lineHeight: '48px',
-                  verticalAlign: 'middle',
-                }}
-              >
-                $
-              </span>
-              7.00
-            </h5>
+            <EditableEarningsField
+              value={stats.total}
+              onChange={updateTotalEarnings}
+              className="total-earning"
+            />
           </div>
         </div>
 
         <div className="overview-col">
           <div className="overview-card">
             <div className="card-content">
-              <h5 className="sub-earning" id="editableText">
-                $2.20
-              </h5>
+              <EditableEarningsField
+                value={stats.subscriptions}
+                onChange={v => updateChannelValue("subscriptions", v)}
+                className="sub-earning"
+              />
               <p>Subscriptions</p>
             </div>
             <img src="/plus-icon.png" alt=""/>
@@ -64,9 +53,11 @@ const EarningsSummary: React.FC = () => {
 
           <div className="overview-card">
             <div className="card-content">
-              <h5 className="tips-earning" id="editableText">
-                $0.00
-              </h5>
+              <EditableEarningsField
+                value={stats.tips}
+                onChange={v => updateChannelValue("tips", v)}
+                className="tips-earning"
+              />
               <p>Tips</p>
             </div>
             <img src="/tips-icon.png" alt=""/>
@@ -76,9 +67,11 @@ const EarningsSummary: React.FC = () => {
         <div className="overview-col">
           <div className="overview-card">
             <div className="card-content">
-              <h5 className="posts-earning" id="editableText">
-                $0.00
-              </h5>
+              <EditableEarningsField
+                value={stats.posts}
+                onChange={v => updateChannelValue("posts", v)}
+                className="posts-earning"
+              />
               <p>Posts</p>
             </div>
             <img src="/posts-icon.png" alt=""/>
@@ -86,9 +79,11 @@ const EarningsSummary: React.FC = () => {
 
           <div className="overview-card">
             <div className="card-content">
-              <h5 className="ref-earning" id="editableText">
-                $0.00
-              </h5>
+              <EditableEarningsField
+                value={stats.referrals}
+                onChange={v => updateChannelValue("referrals", v)}
+                className="ref-earning"
+              />
               <p>Referrals</p>
             </div>
             <img src="/referrals-icon.png" alt=""/>
@@ -98,9 +93,11 @@ const EarningsSummary: React.FC = () => {
         <div className="overview-col">
           <div className="overview-card">
             <div className="card-content">
-              <h5 className="msg-earning" id="editableText">
-                $4.80
-              </h5>
+              <EditableEarningsField
+                value={stats.messages}
+                onChange={v => updateChannelValue("messages", v)}
+                className="msg-earning"
+              />
               <p>Messages</p>
             </div>
             <img src="/messages-icon.png" alt=""/>
@@ -108,9 +105,11 @@ const EarningsSummary: React.FC = () => {
 
           <div className="overview-card">
             <div className="card-content">
-              <h5 className="streams-earning" id="editableText">
-                $0.00
-              </h5>
+              <EditableEarningsField
+                value={stats.streams}
+                onChange={v => updateChannelValue("streams", v)}
+                className="streams-earning"
+              />
               <p>Streams</p>
             </div>
             <img src="/streams-icon.png" alt=""/>
