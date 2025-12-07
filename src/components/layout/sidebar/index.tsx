@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { sidebarItems } from '../../../data/sidebarData';
 import './sidebar.scss';
+import SettingsModal from "../../modals/settingsModal";
 
 const Sidebar: React.FC = () => {
   const [expandedMainIndex, setExpandedMainIndex] = useState<number | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [urlActive, setUrlActive] = useState<{ parent: number | null; index: number | null }>({
     parent: null,
     index: null,
@@ -147,7 +149,7 @@ const Sidebar: React.FC = () => {
               type="button"
               id="settings-menu"
               className={bottomActiveIndex === 0 ? 'active' : ''}
-              onClick={() => handleBottomClick(0)}
+              onClick={() => {handleBottomClick(0); setIsModalOpen(true)}}
             >
               <img src="/settings-icon.png" alt="" /> Settings
             </a>
@@ -165,6 +167,7 @@ const Sidebar: React.FC = () => {
 
         <p className="version">Version 5.6.1</p>
       </div>
+      <SettingsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 };

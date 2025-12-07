@@ -1,131 +1,147 @@
-.modal-overlay {
-    animation: fadeIn 0.3s ease-in-out;
-    background-color: rgba(0, 0, 0, 0.5);
-    height: 100%;
-    left: 0;
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 1000;
-    .modal-content {
-        animation: slideIn 0.3s ease-in-out;
-        background-color: #292929;
-        border-radius: 12px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        margin: 5% auto;
-        max-width: 400px;
-        padding: 1rem;
-        position: relative;
-        width: 90%;
-        .modal-logo {
-            color: #ffffff;
-            font-size: 21px;
-            justify-self: center;
-            margin-bottom: 28px;
-            img {
-                width: 144px;
-            }
-        }
-        .modal-close {
-            color: #666;
-            cursor: pointer;
-            font-size: 21px;
-            position: absolute;
-            right: 1.5rem;
-            top: 1.5rem;
-            transition: color 0.3s;
-        }
-        h2 {
-            color: #ffffff;
-            font-size: 1.5rem;
-            justify-self: center;
-            margin-bottom: 2rem;
-            a {
-                color: rgb(98, 90, 250);
-            }
-        }
-        form {
-            .settings-form-group {
-                display: flex;
-                gap: 5px;
-                margin-bottom: 21px;
-                &.save {
-                    display: block;
-                }
-                &.last {
-                    gap: 10px;
-                    margin-bottom: 0;
-                }
-                .settings-form-group-inner {
-                    width: 50%;
-                    label {
-                        color: #dbfc54;
-                        display: block;
-                        font-size: 14px;
-                        font-weight: 400;
-                        margin-bottom: 0.5rem;
-                        padding-left: 5px;
-                    }
-                    .settings-input-wrapper {
-                        align-items: center;
-                        display: flex;
-                        position: relative;
-                        .settings-currency-symbol {
-                            color: #dbfc54;
-                            font-size: 14px;
-                            font-weight: 400;
-                            left: 0.8rem;
-                            position: absolute;
-                        }
-                        input {
-                            background-color: black;
-                            border: 2px solid #666666;
-                            border-radius: 15px;
-                            color: white;
-                            font-size: 14px;
-                            font-weight: 400;
-                            padding: 0.6rem;
-                            transition: border-color 0.3s;
-                            width: 100%;
-                            &#totalEarnings {
-                                padding-left: 1.5rem;
-                            }
-                            &:focus {
-                                border-color: #dbfc54;
-                                outline: none;
-                            }
-                        }
-                    }
-                    select {
-                        background-color: black;
-                        border: 2px solid #666666;
-                        border-radius: 15px;
-                        color: white;
-                        font-size: 14px;
-                        padding: 0.6rem;
-                        transition: border-color 0.3s;
-                        width: 100%;
-                        &:focus {
-                            border-color: #dbfc54;
-                            outline: none;
-                        }
-                    }
-                }
-                .settings-save-btn {
-                    background-color: #DBFC54;
-                    border: none;
-                    border-radius: 8px;
-                    color: #000000;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: bold;
-                    letter-spacing: 1px;
-                    padding: 1rem;
-                    text-transform: uppercase;
-                    transition: background-color 0.3s;
+.modal {
+    &#createModal {
+        background-color: rgba(0, 0, 0, 0.5) !important;
+        box-shadow: none;
+        .modal-dialog {
+            .modal-content {
+                background-color: transparent;
+                .form-container {
+                    background-color: black;
+                    padding: 20px;
+                    border-radius: 10px;
+                    max-width: 500px;
                     width: 100%;
-                    &:hover {
-                        background: #fff;
+                    h2 {
+                        text-align: center;
+                        color: #333;
+                        margin-bottom: 20px;
+                        img {
+                            width: 144px;
+                        }
+                    }
+                    .form-group {
+                        margin-bottom: 15px;
+                        position: relative;
+                        label {
+                            color: #c4c4c4;
+                            text-transform: capitalize;
+                            font-size: 13px;
+                            font-weight: 500;
+                            text-align: left;
+                            margin-bottom: 5px;
+                            &.toggle-container {
+                                display: flex;
+                                align-items: center;
+                                background-color: black;
+                                border-radius: 20px;
+                                padding: 4px 10px;
+                                font-family: sans-serif;
+                                flex-direction: column;
+                                .toggle-label {
+                                    color: rgb(97, 97, 97) !important;
+                                }
+                                .toggle-switch {
+                                    position: relative;
+                                    width: 26px;
+                                    height: 17px;
+                                    background-color: #171717;
+                                    border-radius: 20px;
+                                    cursor: pointer;
+                                    &:has(input:checked) {
+                                        background-color: #F88056;
+                                    }
+                                    .slider {
+                                        position: absolute;
+                                        height: 10px;
+                                        width: 10px;
+                                        background-color: white;
+                                        border-radius: 50%;
+                                        top: 4px;
+                                        left: 3px;
+                                        transition: 0.3s;
+                                    }
+                                    input {
+                                        display: none;
+                                        &:checked + .slider {
+                                            left: 12px;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        input[type="text"], input[type="number"], select, input[type="range"] {
+                            padding: 10px;
+                            border: 1px solid #101010;
+                            border-radius: 5px;
+                            font-size: 16px;
+                            width: 100%;
+                            background-color: transparent;
+                            transition: border-color 0.3s ease;
+                            color: white;
+                            &#userName, &#avatarName, &#totalEarnings, &#appVersion, &#input_messages, &#timezone, &#avatarIsImage, &#headerAlignment {
+                                border-color: #dbfc54 !important;
+                            }
+                        }
+                        &:has(select) {
+                            &:after {
+                                content: "\f107";
+                                position: absolute;
+                                right: 6px;
+                                top: calc(50% + 11px);
+                                transform: translateY(-50%);
+                                border: 0;
+                                font-family: "Font Awesome 6 Free";
+                                font-style: normal;
+                                font-weight: 900;
+                                font-size: 10px;
+                                color: #d6d9df;
+                                transition: 0.4s all
+                                ease;
+                            }
+                            &>div {
+                                position: relative;
+                                &:after {
+                                    content: "\f107";
+                                    position: absolute;
+                                    right: 6px;
+                                    top: calc(50% + 11px);
+                                    transform: translateY(-50%);
+                                    border: 0;
+                                    font-family: "Font Awesome 6 Free";
+                                    font-style: normal;
+                                    font-weight: 900;
+                                    font-size: 10px;
+                                    color: #d6d9df;
+                                    transition: 0.4s all
+                                    ease;
+                                }
+                            }
+                        }
+                    }
+                    .form-actions {
+                        display: flex;
+                        justify-content: center;
+                        margin-top: 20px;
+                        .calculate-btn, .random-btn, .logout-btn {
+                            background-color: #FFFC00;
+                            color: #270100;
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            font-size: 16px;
+                            cursor: pointer;
+                            transition: background-color 0.3s ease;
+                            text-decoration: none;
+                        }
+                        .calculate-btn, .random-btn {
+                            text-transform: uppercase;
+                            font-size: 14px;
+                            font-weight: 600;
+                            background-color: #dbfc54;
+                            &:hover {
+                                background: #fff;
+                            }
+                        }
                     }
                 }
             }
