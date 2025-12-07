@@ -1,6 +1,18 @@
 import React from "react";
+import { useCreatorStats } from '../../context/CreatorStatsContext.tsx';
 
 const EarningsSummary: React.FC = () => {
+  const {
+    stats,
+    filters,
+    updateTotalEarnings,
+    updateChannelValue,
+    setDateRange,
+    setViewMode,
+  } = useCreatorStats();
+
+  console.log(stats);
+
   return (
     <div className="main-card-wrap">
       <div className="main-card-heading">
@@ -23,17 +35,17 @@ const EarningsSummary: React.FC = () => {
             <img src="/of-icon.svg" alt=""/>
             <p>Total earnings</p>
             <h5 className="total-earning" id="editableText">
-                    <span
-                      className="dollar-sign"
-                      style={{
-                        fontSize: '24px',
-                        color: '#2D74FF',
-                        lineHeight: '48px',
-                        verticalAlign: 'middle',
-                      }}
-                    >
-                      $
-                    </span>
+              <span
+                className="dollar-sign"
+                style={{
+                  fontSize: '24px',
+                  color: '#2D74FF',
+                  lineHeight: '48px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                $
+              </span>
               7.00
             </h5>
           </div>
