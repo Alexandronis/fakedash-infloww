@@ -60,6 +60,21 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
     } else {
       // Month (Full available data or up to 30)
       displayData = sourceData;
+
+      // --- AUTO-EXPAND FIX ---
+      // If we only have weekly data (e.g. 2 points) but want month view,
+      // split those points into ~30 daily points
+      if (displayData.length < 5) {
+        const expanded = [];
+        displayData.forEach(val => {
+          // Split one week bar into 7 daily bars
+          const dailyVal = val / 7;
+          for(let k=0; k<7; k++) expanded.push(dailyVal);
+        });
+        displayData = expanded;
+      }
+      // -----------------------
+
       const start = new Date(today);
       start.setDate(start.getDate() - (displayData.length - 1));
 
