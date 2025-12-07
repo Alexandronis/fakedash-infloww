@@ -2,13 +2,23 @@
 import React from "react";
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
+import DraggableModule from "highcharts/modules/draggable-points";
+
+// === VITE FIX: Initialize the module safely ===
+// Sometimes Vite imports CJS modules as { default: fn }
+if (typeof DraggableModule === "function") {
+  DraggableModule(Highcharts);
+} else if (typeof DraggableModule === "object" && (DraggableModule as any).default) {
+  (DraggableModule as any).default(Highcharts);
+}
 
 type HighchartGraphProps = {
-  options: Highcharts.Options;
   containerId?: string;
+  // allowing override of options if needed
+  options?: Highcharts.Options;
 };
 
-const earningsOptions = {
+const earningsOptions: Highcharts.Options = {
   colors: [
     "#2b908f", "#90ee7e", "#f45b5b", "#7798BF", "#aaeeee",
     "#ff0066", "#eeaaee", "#55BF3B", "#DF5353", "#7798BF", "#aaeeee"
@@ -53,16 +63,7 @@ const earningsOptions = {
     verticalAlign: "bottom",
     style: { color: "#666666", fontSize: "0.8em" }
   },
-  legend: {
-    enabled: false,
-    align: "center",
-    layout: "horizontal",
-    itemStyle: {
-      color: "#E0E0E3",
-      cursor: "pointer",
-      fontSize: "0.8em"
-    }
-  },
+  legend: { enabled: false },
   credits: { enabled: false },
   xAxis: [{
     categories: ["Nov 30-Dec 6", "Dec 7-13"],
@@ -71,11 +72,7 @@ const earningsOptions = {
     tickmarkPlacement: "on",
     title: { align: "middle", style: { color: "#A0A0A3", fontSize: "0.8em" } },
     labels: {
-      style: {
-        color: "#999999",
-        cursor: "default",
-        fontSize: "0.8em"
-      }
+      style: { color: "#999999", cursor: "default", fontSize: "0.8em" }
     },
     gridLineColor: "#707073",
     margin: 15,
@@ -88,11 +85,7 @@ const earningsOptions = {
     min: 0,
     title: { text: "", style: { color: "#444444", fontSize: "0.8em" } },
     labels: {
-      style: {
-        color: "#999999",
-        cursor: "default",
-        fontSize: "0.8em"
-      },
+      style: { color: "#999999", cursor: "default", fontSize: "0.8em" },
       x: -5,
       y: 3
     },
@@ -127,13 +120,44 @@ const earningsOptions = {
     followPointer: true
   },
   plotOptions: {
-    column: {
+    series: {
+      // === GLOBAL SERIES CONFIG FOR DRAG ===
       dragDrop: {
-        draggableY: true // Enable dragging vertically
+        draggableY: true,
+        dragMinY: 0,
+        dragPrecisionY: 0.01,
       },
+      stickyTracking: false,
       allowPointSelect: true,
+      point: {
+        events: {
+          drop: function (e) {
+            // Check if newPoint exists (it contains the drag result)
+            if (e.newPoint) {
+              console.log("New Y:", e.newPoint.y);
+
+              // Example: Auto-expand Y-axis logic
+              // We use `this.series.data` to check existing points
+              // but remember the dragged point value is in `e.newPoint.y`
+              const chart = this.series.chart;
+
+              // Just a visual fix: ensure axis fits the new point
+              const maxVal = Math.max(e.newPoint.y, ...this.series.data.map(p => p.y || 0));
+              const currentMax = chart.yAxis[0].max;
+
+              // Add buffer
+              const neededMax = maxVal > 10 ? maxVal + 10 : 10;
+
+              if (neededMax > currentMax) {
+                chart.yAxis[0].setExtremes(0, neededMax);
+              }
+            }
+          }
+        }
+      }
+    },
+    column: {
       cursor: 'ns-resize',
-      animation: { duration: 1000 },
       borderColor: "#ffffff",
       borderWidth: 0,
       borderRadius: 1,
@@ -144,15 +168,6 @@ const earningsOptions = {
         hover: { brightness: 0.1, color: "#3971FF" },
         select: { color: "#cccccc", borderColor: "#000000" }
       },
-      point: {
-        events: {
-          drop: function (event) {
-            const chart = this.series.chart;
-            const maxVal = Math.max(...this.series.data.map(p => p.y), event.newY);
-            chart.yAxis[0].setExtremes(0, maxVal > 10 ? maxVal + 10 : 10);
-          }
-        }
-      },
       color: "#3467FF"
     }
   },
@@ -160,21 +175,24 @@ const earningsOptions = {
     name: "Earnings",
     type: "column",
     color: "#3467FF",
-    data: [8.75, 0],
+    // === USE OBJECT SYNTAX FOR POINTS ===
+    data: [{ y: 8.75 }, { y: 0 }],
     animation: false,
-    dataLabels: {
-      enabled: false,
-      style: { fontSize: "13px", fontWeight: "bold", color: "contrast", textOutline: "1px contrast" }
-    }
+    dataLabels: { enabled: false }
   }]
 };
 
-const HighchartGraph: React.FC<HighchartGraphProps> = ({ options, containerId }) => (
-  <HighchartsReact
-    highcharts={Highcharts}
-    options={earningsOptions}
-    containerProps={containerId ? { id: containerId } : {}}
-  />
-);
+const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
+  // We use a ref to ensure we don't re-init options unnecessarily
+  // but HighchartsReact handles updates well.
+
+  return (
+    <HighchartsReact
+      highcharts={Highcharts}
+      options={earningsOptions}
+      containerProps={containerId ? { id: containerId } : {}}
+    />
+  );
+};
 
 export default HighchartGraph;
