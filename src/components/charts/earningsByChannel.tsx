@@ -92,7 +92,6 @@ const EarningsByChannelGraph: React.FC = () => {
   const chartRef = useRef<Chart | null>(null);
   const { stats, filters, updateChannelGraphPoint } = useCreatorStats();
 
-  // Ref for callback
   const updateRef = useRef(updateChannelGraphPoint);
   useEffect(() => { updateRef.current = updateChannelGraphPoint; }, [updateChannelGraphPoint]);
 
@@ -100,14 +99,10 @@ const EarningsByChannelGraph: React.FC = () => {
 
   const datasets = useMemo(() => {
     return Object.keys(CHANNEL_COLORS).map((channel) => {
-      // Read directly from independent arrays
       let data = stats.channelData ? stats.channelData[channel] : [];
-
-      // Safety: Ensure length matches labels
       if (!data || data.length !== labels.length) {
         data = Array(labels.length).fill(0);
       }
-
       return {
         label: channel.charAt(0).toUpperCase() + channel.slice(1),
         data: data,
@@ -125,7 +120,7 @@ const EarningsByChannelGraph: React.FC = () => {
         channelKey: channel
       };
     });
-  }, [stats.channelData, labels, stats]); // Trigger when channelData changes
+  }, [stats.channelData, labels, stats]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -163,14 +158,11 @@ const EarningsByChannelGraph: React.FC = () => {
             onDragEnd: (e, datasetIndex, index, value) => {
               const chart = chartRef.current;
               if (!chart) return;
-
               if (value > chart.scales.y.max) {
                 chart.options.scales.y.max = value + 5;
                 chart.update('none');
               }
-
               const channelKey = datasets[datasetIndex].channelKey;
-              // Call independent update
               updateRef.current(channelKey, index, value);
             },
           }
@@ -179,14 +171,31 @@ const EarningsByChannelGraph: React.FC = () => {
         interaction: { mode: "nearest", intersect: false },
         scales: {
           x: {
-            grid: { drawOnChartArea: false, color: "rgba(0,0,0,0.1)" },
+            grid: {
+              drawOnChartArea: false,
+              color: "rgba(255,255,255,0.1)"
+            },
             ticks: { color: "#999", font: { size: 13, family: "'Calibri', sans-serif" }, maxTicksLimit: 15 },
-            border: { display: true, width: 1, color: "rgba(0,0,0,0.1)" },
+            border: { display: true, width: 1, color: "rgba(255,255,255,0.1)" },
           },
           y: {
             min: 0,
-            grid: { color: "rgba(0,0,0,0.1)", drawBorder: false },
-            ticks: { color: "#999", font: { size: 13, family: "'Calibri', sans-serif" }, stepSize: 5 },
+            border: {
+              display: false // Hides the solid axis line on the left
+            },
+            grid: {
+              // Make lines lighter grey
+              color: "rgba(255, 255, 255, 0.15)",
+              // Explicit dash pattern: 8px line, 6px space
+              borderDash: [8, 6],
+              drawBorder: false,
+              tickLength: 8
+            },
+            ticks: {
+              color: "#999",
+              font: { size: 13, family: "'Calibri', sans-serif" },
+              stepSize: 5
+            },
             beginAtZero: true
           }
         }
