@@ -134,8 +134,12 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         style: { color: "#fff", fontSize: "0.8em" },
         formatter: function () {
           const point = this.points ? this.points[0] : this;
+
+          // FIX: Use 'point.key' which holds the category name (Date string)
+          // OR lookup manually if needed: chartData.labels[point.point.index]
+          const dateLabel = point.key || chartData.labels[point.point.index];
+
           const currentY = point.y;
-          // Safe access to previous point
           const prevY = point.series.data[point.point.index - 1]?.y;
 
           let growthHtml = "";
@@ -150,7 +154,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
 
           return `
                 <div style="padding: 5px;">
-                    <div style="margin-bottom: 4px; font-weight: bold;">${point.x}</div>
+                    <div style="margin-bottom: 4px; font-weight: bold;">${dateLabel}</div>
                     <div>
                         Earnings: <b>$${currentY.toFixed(2)}</b>
                         ${growthHtml}
