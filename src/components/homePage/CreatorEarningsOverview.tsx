@@ -10,6 +10,7 @@ const CreatorEarningsOverview: React.FC = () => {
   // 1. Connect to Context
   const {
     stats,
+    userSettings,
     updateTotalEarnings,
     updateChannelValue,
   } = useCreatorStats();
@@ -28,7 +29,7 @@ const CreatorEarningsOverview: React.FC = () => {
           >
             <img src="/info-icon.png" alt="" />
           </button>
-          <span className="utc">UTC+01:00</span>
+          <span className="utc">{userSettings.timezone}</span>
           <img
             src="/info-icon.png"
             alt=""
