@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useCreatorStats } from "../../../context/CreatorStatsContext";
 import "./header.scss";
 
 const dropdownItems = [
@@ -22,6 +23,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const [selectedItem, setSelectedItem] = useState(dropdownItems[0]);
   const [sfwActive, setSfwActive] = useState(false);
+  const { userSettings } = useCreatorStats();
   const handleDropdownClick = (item: typeof dropdownItems[0]) => {
     setSelectedItem(item);
   };
@@ -74,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           >
             <img src="/top-globe-icon.png" alt=""/>
           </button>
-          UTC+01:00
+          {userSettings.timezone}
           <button
             type="button"
             className="tooltip-custom info-icon"
@@ -134,7 +136,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             data-bs-toggle="dropdown"
             aria-expanded="false"
           >
-            <span className="avatarName">Ag</span>
+            <span className="avatarName">{userSettings.avatarName}</span>
           </button>
 
           <ul className="dropdown-menu" style={{}}>

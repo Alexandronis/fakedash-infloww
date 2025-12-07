@@ -1,8 +1,9 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { sidebarItems } from '../../../data/sidebarData';
-import './sidebar.scss';
 import SettingsModal from "../../modals/settingsModal";
+import { useCreatorStats } from "../../../context/CreatorStatsContext.tsx";
+import './sidebar.scss';
 
 const Sidebar: React.FC = () => {
   const [expandedMainIndex, setExpandedMainIndex] = useState<number | null>(null);
@@ -11,6 +12,8 @@ const Sidebar: React.FC = () => {
     parent: null,
     index: null,
   });
+  const { userSettings } = useCreatorStats();
+  console.log(userSettings.showOfBadge);
 
   // Auto-detect active item based on current URL
   useEffect(() => {
@@ -64,7 +67,7 @@ const Sidebar: React.FC = () => {
   return (
     <div className="dashboard-sidebar">
       <div className="sidebar-main">
-        <ul className="sidebar-link-list">
+        <ul className={`sidebar-link-list${userSettings.showOfBadge ? ' show-of-badge' : ''}`}>
           {sidebarItems.map((item, index) => {
             if (item.type === "hr") return <hr key={index} />;
 
@@ -165,7 +168,7 @@ const Sidebar: React.FC = () => {
           </li>
         </ul>
 
-        <p className="version">Version 5.6.1</p>
+        <p className="version">Version {userSettings.appVersion}</p>
       </div>
       <SettingsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>

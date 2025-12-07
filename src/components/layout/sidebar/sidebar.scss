@@ -108,7 +108,7 @@
                     background-color: #171717cc;
                     position: relative;
                     .of-badge {
-                        display: inline-block;
+                        display: none;
                         position: absolute;
                         right: 40px;
                         width: 11px;
@@ -152,6 +152,15 @@
                         ul {
                             display: block;
                             max-height: 600px;
+                        }
+                    }
+                }
+            }
+            &.show-of-badge {
+                li {
+                    #of-top-menu {
+                        .of-badge {
+                            display: inline-block;
                         }
                     }
                 }
