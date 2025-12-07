@@ -195,9 +195,16 @@
                             letter-spacing: -0.9px;
                             font-size: 21px;
                             line-height: 1.2;
-                            color: white;
+                            color: white !important;
                             font-weight: 700;
                             margin-bottom: 2px;
+                            height: 25px;
+                            .dollar-sign {
+                                color: white !important;
+                            }
+                            & > div {
+                                color: white !important;
+                            }
                         }
                         p {
                             font-size: 13px;
