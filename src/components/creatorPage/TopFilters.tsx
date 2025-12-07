@@ -29,14 +29,20 @@ const TopFilters: React.FC = () => {
     if (!dateRangeRef.current) return;
     (window as any).moment = moment;
 
+    // 1. Parse the default range from Context (matches graphs)
+    const [startStr, endStr] = filters.dateRange.split("_");
+    const startMoment = moment(startStr);
+    const endMoment = moment(endStr);
+
     // @ts-ignore
     $(dateRangeRef.current).daterangepicker(
       {
         opens: "left",
         autoUpdateInput: false,
         alwaysShowCalendars: true,
-        startDate: moment().subtract(7, "days"),
-        endDate: moment(),
+        // 2. Set the picker to match context
+        startDate: startMoment,
+        endDate: endMoment,
         ranges: {
           "2025": [moment("2025-01-01"), moment("2025-12-31")],
           "Last 7 Days": [moment().subtract(6, "days"), moment()],
@@ -52,6 +58,7 @@ const TopFilters: React.FC = () => {
         },
       },
       function (start: any, end: any) {
+        // Update visual text only (Purely visual as requested)
         if (dateRangeRef.current) {
           const span = dateRangeRef.current.querySelector("span");
           if (span) {
@@ -63,7 +70,17 @@ const TopFilters: React.FC = () => {
         }
       }
     );
-  }, []);
+
+    // 3. Set initial text immediately
+    const span = dateRangeRef.current.querySelector("span");
+    if (span) {
+      span.innerHTML = `
+            <span style="padding: 0 60px 0 10px">${startMoment.format("MMM. DD, YYYY")}</span>
+            <span style="padding: 0 45px 0 0">⇀ ${endMoment.format("MMM. DD, YYYY")}</span>
+        `;
+    }
+
+  }, []); // Run once on mount
 
   const handleViewModeChange = (e: React.MouseEvent, mode: "day" | "week" | "hour" | "month") => {
     e.preventDefault();
@@ -83,10 +100,7 @@ const TopFilters: React.FC = () => {
         {/* DATE RANGE */}
         <div id="daterange" ref={dateRangeRef}>
             <span>
-              <span style={{padding: "0 60px 0 10px"}}>Nov. 25, 2025</span>
-              <span style={{padding: "0 45px 0 0"}}>
-                ⇀&nbsp;&nbsp; Nov. 29, 2025
-              </span>
+               {/* Initial content will be replaced by useEffect */}
             </span>
           &nbsp;
           <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
@@ -106,7 +120,6 @@ const TopFilters: React.FC = () => {
             aria-expanded="false"
             style={{backgroundColor: "transparent", appearance: "none", textTransform: "none"}}
           >
-            {/* Capitalize first letter visually */}
             Shown by {filters.viewMode.charAt(0).toUpperCase() + filters.viewMode.slice(1)}
           </button>
 
@@ -137,7 +150,7 @@ const TopFilters: React.FC = () => {
 
         <span className="header-span_filter" onClick={showDialog}>
             <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" d="M18.796 4H5.204a1 1 0 0 0-.753 1.659l5.302 6.058a1 1 0 0 1 .247.659v4.874a.5.5 0 0 0 .2.4l3 2.25a.5.5 0 0 0 .8-.4v-7.124a1 1 0 0 1 .247-.659l5.302-6.059c.566-.646.106-1.658-.753-1.658Z"/>
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M18.796 4H5.204a1 1 0 0 0-.753 1.659l5.302 6.058a1 1 0 0 1 .247.659v4.874a.5.5 0 0 0 .2.4l3 2.25a.5.5 0 0 0 .8-.4v-7.124a1 1 0 0 1 .247-.659l5.302-6.059c.566-.646.106-1.658-.753-1.658Z"/>
             </svg> Filters
         </span>
 
