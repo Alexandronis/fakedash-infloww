@@ -81,7 +81,8 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
       type: "column",
       backgroundColor: "transparent",
       borderColor: "#334eff",
-      marginTop: 40, // Reduced margin since we use custom HTML title
+      // Removed large marginTop since header is now relative flow
+      marginTop: 10,
       style: { fontFamily: "'Segoe UI', sans-serif" },
       animation: false,
     },
@@ -100,7 +101,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
       lineColor: "#3e3e3e",
       tickColor: "#3e3e3e",
       labels: { style: { color: "#999999" } },
-      // 3) Crosshair (Vertical Dashed Line) logic
+      // Vertical Dashed Line
       crosshair: {
         width: 1,
         color: '#FFFFFF',
@@ -121,9 +122,8 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
           draggableY: true,
           dragMinY: 0,
           dragPrecisionY: 0.01,
-          // 2) Hide the drag handle (circle)
+          // Hide the drag handle circle
           dragHandle: {
-            className: 'highcharts-drag-handle', // Optional: if you want to style via CSS
             color: 'transparent',
             lineColor: 'transparent'
           }
@@ -170,12 +170,12 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
-      {/* 1) Custom HTML Title Overlay */}
+    <div style={{ width: '100%' }}>
+      {/* 1) Custom Header with your specific styles */}
       <div style={{
-        position: "absolute",
-        top: "10px",
-        left: "15px",
+        paddingLeft: "34px",
+        marginTop: "7px",
+        marginBottom: "31px",
         zIndex: 10,
         color: "white",
         fontSize: "16px",
@@ -201,7 +201,12 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
             className="charts-title"
             alt=""
             src="/info-icon.png"
-            style={{ display: "block" }}
+            style={{
+              display: "block",
+              height: "15px",
+              width: "15px",
+              marginLeft: "3px"
+            }}
           />
         </button>
       </div>
