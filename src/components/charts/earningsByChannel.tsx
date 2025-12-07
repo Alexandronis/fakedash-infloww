@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "chart.js";
 import dragData from "chartjs-plugin-dragdata";
+import { useCreatorStats } from "../../context/CreatorStatsContext.tsx";
 
 // Plugin for dashed vertical hover line
 const hoverDashedLinePlugin = {
@@ -197,6 +198,20 @@ const EarningsByChannelGraph: React.FC = () => {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
 
+  const {
+    stats,
+  } = useCreatorStats();
+
+  const STAT_CONFIG = {
+    subscriptions: { label: "Subscriptions", className: "subscriptions" },
+    tips: { label: "Tips", className: "tips" },
+    posts: { label: "Posts", className: "posts" },
+    messages: { label: "Messages", className: "messages" },
+    referrals: { label: "Referrals", className: "referrals" },
+    streams: { label: "Streams", className: "streams" },
+  };
+
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -279,88 +294,35 @@ const EarningsByChannelGraph: React.FC = () => {
         </div>
         <div className="legend">
           <ul>
-            <li className="item">
-              <div className="info">
-                <span className="subscriptions"></span>
-                <p>Subscriptions</p>
-              </div>
-              <div style={{fontSize: "12px", color: "white"}} className="sub-percent">
-                0.53%
-              </div>
-              <div className="sub-earning" id="editableText" style={{fontSize: "12px", color: "white"}}>
-                $0.09
-              </div>
-            </li>
-            <li className="item">
-              <div className="info">
-                <span className="tips"></span>
-                <p>Tips</p>
-              </div>
-              <div
-                style={{fontSize: "12px", color: "white"}}
-                className="tips-percent"
-              >
-                0.00%
-              </div>
-              <div
-                className="tips-earning"
-                id="editableText"
-                style={{fontSize: "12px", color: "white"}}
-              >
-                $0.00
-              </div>
-            </li>
-            <li className="item">
-              <div className="info">
-                <span className="posts"></span>
-                <p>Posts</p>
-              </div>
-              <div
-                style={{fontSize: "12px", color: "white"}}
-                className="tips-percent"
-              >
-                0.00%
-              </div>
-              <div
-                className="tips-earning"
-                id="editableText"
-                style={{fontSize: "12px", color: "white"}}
-              >
-                $0.00
-              </div>
-            </li>
-            <li className="item">
-              <div className="info">
-                <span className="messages"></span>
-                <p>Messages</p>
-              </div>
-              <div style={{fontSize: "12px", color: "white"}} className="msg-percent">
-                99.45%
-              </div>
-              <div className="msg-earning" id="editableText" style={{fontSize: "12px", color: "white"}}>
-                $16.17
-              </div>
-            </li>
-            <li className="item">
-              <div className="info">
-                <span className="referrals"></span>
-                <p>Referrals</p>
-              </div>
-              <div style={{fontSize: "12px", color: "white"}}>0.00%</div>
-              <div className="streams-earning" style={{fontSize: "12px", color: "white"}}>
-                $0.00
-              </div>
-            </li>
-            <li className="item">
-              <div className="info">
-                <span className="streams"></span>
-                <p>Streams</p>
-              </div>
-              <div style={{fontSize: "12px", color: "white"}}>0%</div>
-              <div className="streams-earning" style={{fontSize: "12px", color: "white"}}>
-                $0.00
-              </div>
-            </li>
+            {Object.entries(stats)
+              .filter(([key]) => key !== "total")
+              .map(([key, value]) => {
+                const cfg = STAT_CONFIG[key];
+                if (!cfg) return null;
+
+                const percent =
+                  stats.total > 0 ? ((value / stats.total) * 100).toFixed(2) : "0.00";
+
+                return (
+                  <li key={key} className="item">
+                    <div className="info">
+                      <span className={cfg.className}></span>
+                      <p>{cfg.label}</p>
+                    </div>
+
+                    <div style={{fontSize: "12px", color: "white"}}>
+                      {percent}%
+                    </div>
+
+                    <div
+                      className={`${cfg.className}-earning`}
+                      style={{fontSize: "12px", color: "white"}}
+                    >
+                      ${value.toFixed(2)}
+                    </div>
+                  </li>
+                );
+              })}
           </ul>
         </div>
       </div>
