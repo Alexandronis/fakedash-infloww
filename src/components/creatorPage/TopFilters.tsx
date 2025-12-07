@@ -2,8 +2,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import FilterDialog from "../filterDialog";
 import { Tooltip } from "bootstrap";
+import { useCreatorStats } from "../../context/CreatorStatsContext"; // ADJUST PATH IF NEEDED
 
 const TopFilters: React.FC = () => {
+  // 1. Connect to Context
+  const { filters, setViewMode } = useCreatorStats();
+
   useEffect(() => {
     const tooltipTriggerList = Array.from(
       document.querySelectorAll('[data-bs-toggle="tooltip"]')
@@ -12,10 +16,9 @@ const TopFilters: React.FC = () => {
       (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
     );
   }, []);
+
   const earningsOptions = ["Gross earnings", "Net earnings"];
-
   const [selectedEarnings, setSelectedEarnings] = useState("Gross earnings");
-
   const [isDialogOpen, setDialogOpen] = useState(false);
 
   const showDialog = () => setDialogOpen(true);
@@ -25,7 +28,6 @@ const TopFilters: React.FC = () => {
 
   useEffect(() => {
     if (!dateRangeRef.current) return;
-
     // daterangepicker MUST see jQuery + moment globally
     (window as any).moment = moment;
 
@@ -59,6 +61,15 @@ const TopFilters: React.FC = () => {
       }
     );
   }, []);
+
+  // Helper to handle view mode switch
+  const handleViewModeChange = (e: React.MouseEvent, mode: "day" | "week" | "hour" | "month") => {
+    e.preventDefault();
+    // Only process active modes
+    if (mode === "day" || mode === "week") {
+      setViewMode(mode);
+    }
+  };
 
   return (
     <div className="header-bar">
@@ -130,27 +141,35 @@ const TopFilters: React.FC = () => {
             aria-expanded="false"
             style={{backgroundColor: "transparent", appearance: "none"}}
           >
-            Shown by week
+            Shown by {filters.viewMode}
           </button>
 
           <ul className="dropdown-menu">
             <li>
-              <a className="dropdown-item disabled" href="#" data-period="hour">
+              <a className="dropdown-item disabled" href="#" onClick={(e) => handleViewModeChange(e, "hour")}>
                 Shown by hour
               </a>
             </li>
             <li>
-              <a className="dropdown-item" href="#" data-period="day">
+              <a
+                className={`dropdown-item ${filters.viewMode === "day" ? "active" : ""}`}
+                href="#"
+                onClick={(e) => handleViewModeChange(e, "day")}
+              >
                 Shown by day
               </a>
             </li>
             <li>
-              <a className="dropdown-item active" href="#" data-period="week">
+              <a
+                className={`dropdown-item ${filters.viewMode === "week" ? "active" : ""}`}
+                href="#"
+                onClick={(e) => handleViewModeChange(e, "week")}
+              >
                 Shown by week
               </a>
             </li>
             <li>
-              <a className="dropdown-item disabled" href="#" data-period="month">
+              <a className="dropdown-item disabled" href="#" onClick={(e) => handleViewModeChange(e, "month")}>
                 Shown by month
               </a>
             </li>
@@ -219,7 +238,6 @@ const TopFilters: React.FC = () => {
             Filters
           </span>
 
-        {/* New Filter Dialog Component */}
         <FilterDialog isOpen={isDialogOpen} onClose={closeDialog}/>
       </div>
     </div>

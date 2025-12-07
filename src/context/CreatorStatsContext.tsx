@@ -12,7 +12,6 @@ const defaultStats = {
   referrals: 0,
   messages: 0,
   streams: 0,
-  // NEW: Store the visual shape of the graph
   graphData: [],
 };
 
@@ -28,7 +27,7 @@ const CreatorStatsContext = createContext({
   filters: { ...defaultFilters },
   updateTotalEarnings: (value: number) => {},
   updateChannelValue: (channel: string, value: number) => {},
-  updateGraphColumn: (index: number, newValue: number) => {}, // NEW method for chart
+  updateGraphColumn: (index: number, newValue: number) => {},
   setDateRange: (range: string) => {},
   setViewMode: (mode: "day" | "week") => {},
   resetStats: () => {},
@@ -48,7 +47,34 @@ const fallbackBaseDistribution = {
 };
 const fallbackBaseTotal = Object.values(fallbackBaseDistribution).reduce((sum, v) => sum + v, 0);
 
-// Helper to determine graph length based on filters
+// NEW: Helper to split a Total into N random parts that sum up exactly to Total
+// This makes the graph look "Real" instead of flat
+function generateOrganicDistribution(total: number, count: number) {
+  if (count <= 0) return [];
+  if (total <= 0) return Array(count).fill(0);
+  if (count === 1) return [total];
+
+  // 1. Generate random weights (0.3 to 1.3 range to avoid extreme spikes/drops)
+  const weights = Array(count).fill(0).map(() => Math.random() + 0.3);
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+
+  // 2. Distribute total based on weights
+  let distributed = weights.map(w => Number(((w / weightSum) * total).toFixed(2)));
+
+  // 3. Fix rounding errors (ensure sum is exactly Total)
+  const currentSum = distributed.reduce((a, b) => a + b, 0);
+  let diff = Number((total - currentSum).toFixed(2));
+
+  // Add/Subtract the difference to a random element (or the middle one) to hide it
+  if (diff !== 0) {
+    const mid = Math.floor(count / 2);
+    distributed[mid] = Number((distributed[mid] + diff).toFixed(2));
+  }
+
+  // Double check for negatives (floating point safety)
+  return distributed.map(v => (v < 0 ? 0 : v));
+}
+
 function getGraphLength(dateRange, viewMode) {
   const [startStr, endStr] = dateRange.split("_");
   const start = new Date(startStr);
@@ -95,17 +121,17 @@ function recalcChildrenFromTotal(channels, newTotal) {
   }
   newChannels.total = Number(newTotal.toFixed(2));
 
-  // 2. Recalc Graph Data (Scale Proportionally)
+  // 2. Recalc Graph Data (Scale or Organic Init)
   const oldGraphSum = (newChannels.graphData || []).reduce((a, b) => a + b, 0);
+
   if (!newChannels.graphData || newChannels.graphData.length === 0) {
-    // Should not happen if initialized, but safe fallback
+    // Safety fallback
     newChannels.graphData = [newChannels.total];
   } else if (oldGraphSum === 0) {
-    // Distribute evenly if it was zero
-    const val = newChannels.total / newChannels.graphData.length;
-    newChannels.graphData = newChannels.graphData.map(() => Number(val.toFixed(2)));
+    // Was zero, now has value -> Distribute Organically
+    newChannels.graphData = generateOrganicDistribution(newChannels.total, newChannels.graphData.length);
   } else {
-    // Scale existing shape
+    // Existing shape exists -> Scale it (keep the shape)
     const ratio = newChannels.total / oldGraphSum;
     newChannels.graphData = newChannels.graphData.map(v => Number((v * ratio).toFixed(2)));
   }
@@ -115,19 +141,18 @@ function recalcChildrenFromTotal(channels, newTotal) {
 
 function recalcTotalFromChildren(channels) {
   const total = defaultChannels.reduce((sum, c) => sum + (channels[c] || 0), 0);
-
-  // Also scale graph to match new total
   const newChannels = { ...channels, total: Number(total.toFixed(2)) };
+
   const oldGraphSum = (newChannels.graphData || []).reduce((a, b) => a + b, 0);
 
   if (oldGraphSum > 0 && total > 0) {
+    // Scale existing shape
     const ratio = total / oldGraphSum;
     newChannels.graphData = newChannels.graphData.map(v => Number((v * ratio).toFixed(2)));
   } else if (newChannels.graphData && newChannels.graphData.length > 0) {
-    const val = total / newChannels.graphData.length;
-    newChannels.graphData = newChannels.graphData.map(() => Number(val.toFixed(2)));
+    // Was zero, distribute organically
+    newChannels.graphData = generateOrganicDistribution(total, newChannels.graphData.length);
   }
-
   return newChannels;
 }
 
@@ -147,8 +172,7 @@ export const CreatorStatsProvider = ({ children }) => {
     const cookieRaw = Cookies.get(COOKIE_KEY);
     try {
       const parsed = JSON.parse(cookieRaw || "{}");
-      const loadedStats = parsed.statsByFilter || {};
-      return loadedStats;
+      return parsed.statsByFilter || {};
     } catch { return {}; }
   });
 
@@ -158,13 +182,13 @@ export const CreatorStatsProvider = ({ children }) => {
 
   const filterKey = `${filters.dateRange}:${filters.viewMode}`;
 
-  // Ensure current filter stats exist and have correct graph length
+  // Helper: Ensures stats exist for a key. If missing, inits with 0s.
   const ensureStatsExist = (currentStatsByFilter, fRange, fMode) => {
     const key = `${fRange}:${fMode}`;
     const existing = currentStatsByFilter[key];
     const neededLen = getGraphLength(fRange, fMode);
 
-    if (!existing) {
+    if (!existing || !existing.graphData || existing.graphData.length !== neededLen) {
       return {
         ...currentStatsByFilter,
         [key]: {
@@ -173,26 +197,16 @@ export const CreatorStatsProvider = ({ children }) => {
         }
       };
     }
-
-    // If graph length doesn't match (e.g. changed date range length), re-init graph with 0s
-    if (!existing.graphData || existing.graphData.length !== neededLen) {
-      return {
-        ...currentStatsByFilter,
-        [key]: {
-          ...existing,
-          graphData: Array(neededLen).fill(0)
-        }
-      };
-    }
-
     return currentStatsByFilter;
   };
 
   // --- Updaters ---
+
   const setDateRange = useCallback(range => {
     setFilters(f => {
       const newFilters = { ...f, dateRange: range };
       setStatsByFilter(prev => {
+        // Changing Date Range => Start fresh (0s).
         const withInit = ensureStatsExist(prev, range, newFilters.viewMode);
         persistCookie(withInit, newFilters);
         return withInit;
@@ -204,25 +218,44 @@ export const CreatorStatsProvider = ({ children }) => {
   const setViewMode = useCallback(mode => {
     setFilters(f => {
       const newFilters = { ...f, viewMode: mode };
+
       setStatsByFilter(prev => {
-        const withInit = ensureStatsExist(prev, newFilters.dateRange, mode);
-        persistCookie(withInit, newFilters);
-        return withInit;
+        // 1. Get Old Stats
+        const oldKey = `${f.dateRange}:${f.viewMode}`;
+        const oldStats = prev[oldKey] || defaultStats;
+
+        // 2. Prepare New Key & Graph Length
+        const newKey = `${f.dateRange}:${mode}`;
+        const newLen = getGraphLength(f.dateRange, mode);
+
+        // 3. GENERATE NEW ORGANIC DISTRIBUTION
+        const newGraphData = generateOrganicDistribution(oldStats.total, newLen);
+
+        const newStats = {
+          ...oldStats, // Copy Subscriptions, Messages, Total, etc.
+          graphData: newGraphData // Overwrite with new organic shape
+        };
+
+        // 4. Update State
+        const updated = {
+          ...prev,
+          [newKey]: newStats
+        };
+
+        persistCookie(updated, newFilters);
+        return updated;
       });
+
       return newFilters;
     });
   }, []);
 
   const updateTotalEarnings = useCallback(value => {
     setStatsByFilter(prev => {
-      const key = filterKey;
-      // Ensure exists first
       const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const existing = withInit[key];
-
+      const existing = withInit[filterKey];
       const updatedStats = recalcChildrenFromTotal(existing, value);
-
-      const final = { ...withInit, [key]: updatedStats };
+      const final = { ...withInit, [filterKey]: updatedStats };
       persistCookie(final, filters);
       return final;
     });
@@ -233,38 +266,26 @@ export const CreatorStatsProvider = ({ children }) => {
     setStatsByFilter(prev => {
       const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
       const existing = withInit[filterKey];
-
       const newChannels = { ...existing };
       newChannels[channel] = Number(value.toFixed(2));
-
       const updatedStats = recalcTotalFromChildren(newChannels);
-
       const final = { ...withInit, [filterKey]: updatedStats };
       persistCookie(final, filters);
       return final;
     });
   }, [filterKey, filters]);
 
-  // NEW: Update a specific column in the graph (from Drag event)
   const updateGraphColumn = useCallback((index, newValue) => {
     setStatsByFilter(prev => {
       const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
       const existing = withInit[filterKey];
-
       const newGraphData = [...existing.graphData];
       if (index >= 0 && index < newGraphData.length) {
         newGraphData[index] = Number(newValue.toFixed(2));
       }
-
-      // Calculate new total from the graph
       const newTotal = newGraphData.reduce((a, b) => a + b, 0);
-
-      // Use our existing helper to distribute this new total to channels
-      // BUT we must manually override the graphData afterwards because
-      // recalcChildrenFromTotal would try to rescale the old graph
       const tempStats = recalcChildrenFromTotal(existing, newTotal);
-      tempStats.graphData = newGraphData; // Enforce our dragged shape
-
+      tempStats.graphData = newGraphData;
       const final = { ...withInit, [filterKey]: tempStats };
       persistCookie(final, filters);
       return final;
@@ -276,22 +297,17 @@ export const CreatorStatsProvider = ({ children }) => {
       const neededLen = getGraphLength(filters.dateRange, filters.viewMode);
       const updated = {
         ...prev,
-        [filterKey]: {
-          ...defaultStats,
-          graphData: Array(neededLen).fill(0)
-        }
+        [filterKey]: { ...defaultStats, graphData: Array(neededLen).fill(0) }
       };
       persistCookie(updated, filters);
       return updated;
     });
   }, [filterKey, filters]);
 
-  // Read current stats (safely initialized)
   const currentStats = (() => {
     const neededLen = getGraphLength(filters.dateRange, filters.viewMode);
     const existing = statsByFilter[filterKey];
     if (!existing || !existing.graphData || existing.graphData.length !== neededLen) {
-      // Return a temporary default if state update hasn't propagated yet
       return { ...defaultStats, graphData: Array(neededLen).fill(0) };
     }
     return existing;
@@ -302,7 +318,7 @@ export const CreatorStatsProvider = ({ children }) => {
     filters,
     updateTotalEarnings,
     updateChannelValue,
-    updateGraphColumn, // Exported new method
+    updateGraphColumn,
     setDateRange,
     setViewMode,
     resetStats,
