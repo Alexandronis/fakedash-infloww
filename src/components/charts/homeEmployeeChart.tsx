@@ -89,9 +89,9 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       title: {
         useHTML: true,
         text: `
-          <div style="color: white; font-weight: 500; font-size: 15px; display: flex; align-items: center;">
+          <div style="font-family: 'Inter'; color: white; font-weight: 500; font-size: 15px; display: flex; align-items: center; margin-top: 10px; margin-left: 0;">
             Employee sales 
-            <button class="tooltip-custom" style="position: relative; margin-left: 8px; background: none; border: none; padding: 0; cursor: pointer;">
+            <button class="tooltip-custom" style="position: relative; margin-left: 14px; background: none; border: none; padding: 0; cursor: pointer;margin-top: 1px;">
                <img src="/info-icon.png" style="width: 15px; height: 15px; display: block;" />
             </button>
           </div>

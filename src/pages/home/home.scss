@@ -236,7 +236,7 @@
                 flex-direction: column;
                 padding: 40px 0;
                 position: relative;
-                top: 17%;
+                top: 0%;
                 img {
                     width: 110px;
                     margin: 0 auto 10px;
@@ -260,6 +260,10 @@
             width: 98%;
             height: 400px;
             margin-left: 16px;
+            padding-left: 10px;
+            .highcharts-title {
+                margin-left: -5px !important;
+            }
         }
     }
 }

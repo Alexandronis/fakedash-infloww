@@ -55,10 +55,7 @@ const HomePage: React.FC = () => {
                   <p>No employees have clocked in.</p>
                 </div>
               </div>
-
-              {/* Highchart Component */}
               <HomeEmployeeChart timeFilter={timeFilter} />
-
             </div>
             <div className="main-card-wrap charts1">
               <div className="main-card-heading">
