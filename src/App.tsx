@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
+import { CreatorStatsProvider } from "./context/CreatorStatsContext.tsx";
 
 import Sidebar from './components/layout/sidebar';
 import Header from './components/layout/header';
@@ -15,15 +16,17 @@ function App() {
   };
 
   return (
-    <div className={`dashboard-wrap${menuClosed ? " menu-close" : ""}`}>
-      <Header onMenuToggle={toggleMenu} />
-      <Sidebar/>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard"/>}/>
-        <Route path="/dashboard" element={<HomePage/>}/>
-        <Route path="/creator" element={<CreatorPage/>}/>
-      </Routes>
-    </div>
+    <CreatorStatsProvider>
+      <div className={`dashboard-wrap${menuClosed ? " menu-close" : ""}`}>
+        <Header onMenuToggle={toggleMenu} />
+        <Sidebar/>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard"/>}/>
+          <Route path="/dashboard" element={<HomePage/>}/>
+          <Route path="/creator" element={<CreatorPage/>}/>
+        </Routes>
+      </div>
+    </CreatorStatsProvider>
   )
 }
 
