@@ -379,8 +379,10 @@
                     font-weight: bold;
                     font-family: "Inter";
                     font-size: 28px;
-                    color: white;
+                    color: white !important;
                     line-height: 1.2;
+                    margin-bottom: 0;
+                    height: 34px;
                 }
                 .card-title {
                     font-size: 13px;
