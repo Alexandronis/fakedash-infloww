@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { useCreatorStats } from '../../context/CreatorStatsContext'; // ADJUST PATH IF NEEDED
-import EditableEarningsField from '../editableEarningsField'; // ADJUST PATH IF NEEDED
+import { useCreatorStats } from '../../context/CreatorStatsContext';
+import EditableEarningsField from '../editableEarningsField';
 
 const CreatorEarningsOverview: React.FC = () => {
   const [selectedEarnings, setSelectedEarnings] = useState("Gross earnings");
