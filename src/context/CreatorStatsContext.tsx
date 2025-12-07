@@ -28,7 +28,7 @@ const defaultFilters = {
   viewMode: "week",
 };
 
-const COOKIE_KEY = "creatorStats";
+const COOKIE_KEY = "creatorStats_v2";
 
 const CreatorStatsContext = createContext({
   stats: { ...defaultStats },
