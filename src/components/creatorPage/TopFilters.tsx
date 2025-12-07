@@ -12,6 +12,9 @@ const TopFilters: React.FC = () => {
       (tooltipTriggerEl) => new Tooltip(tooltipTriggerEl)
     );
   }, []);
+  const earningsOptions = ["Gross earnings", "Net earnings"];
+
+  const [selectedEarnings, setSelectedEarnings] = useState("Gross earnings");
 
   const [isDialogOpen, setDialogOpen] = useState(false);
 
@@ -173,20 +176,26 @@ const TopFilters: React.FC = () => {
             aria-expanded="false"
             style={{backgroundColor: "transparent", appearance: "none"}}
           >
-            Net earnings
+            {selectedEarnings}
           </button>
 
           <ul className="dropdown-menu">
-            <li>
-              <a className="dropdown-item" href="#">
-                Gross earnings
-              </a>
-            </li>
-            <li>
-              <a className="dropdown-item active" href="#">
-                Net earnings
-              </a>
-            </li>
+            {earningsOptions.map((opt) => (
+              <li key={opt}>
+                <a
+                  className={`dropdown-item${
+                    selectedEarnings === opt ? " active" : ""
+                  }`}
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSelectedEarnings(opt);
+                  }}
+                >
+                  {opt}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 

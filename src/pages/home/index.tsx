@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './home.scss';
 
 const HomePage: React.FC = () => {
+  const [selectedEarnings, setSelectedEarnings] = useState("Gross earnings");
+  const earningsOptions = ["Gross earnings", "Net earnings"];
+
   return (
     <div className="dashboard-content">
       <div className="row">
@@ -51,20 +54,26 @@ const HomePage: React.FC = () => {
                       color: '#bbb',
                     }}
                   >
-                    Net earnings
+                    {selectedEarnings}
                   </button>
 
                   <ul className="dropdown-menu" style={{ padding: '3px' }}>
-                    <li>
-                      <a className="dropdown-item" href="#">
-                        Gross earnings
-                      </a>
-                    </li>
-                    <li>
-                      <a className="dropdown-item active" href="#">
-                        Net earnings
-                      </a>
-                    </li>
+                    {earningsOptions.map((opt) => (
+                      <li key={opt}>
+                        <a
+                          className={`dropdown-item${
+                            selectedEarnings === opt ? " active" : ""
+                          }`}
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setSelectedEarnings(opt);
+                          }}
+                        >
+                          {opt}
+                        </a>
+                      </li>
+                    ))}
                   </ul>
                 </div>
 
