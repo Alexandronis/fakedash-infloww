@@ -1,5 +1,7 @@
-import React from "react";
+// @ts-nocheck
+import React, { useState, useEffect } from "react";
 import "./settingsModal.scss";
+import { useCreatorStats } from "../../../context/CreatorStatsContext";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -7,10 +9,53 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+  const { userSettings, stats, updateUserSettings, updateTotalEarnings } = useCreatorStats();
+
+  // Local form state
+  const [formData, setFormData] = useState(userSettings);
+  const [totalSales, setTotalSales] = useState(stats.total);
+
+  // Sync form with context when modal opens OR when context updates
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(userSettings);
+      setTotalSales(stats.total);
+    }
+  }, [isOpen, userSettings, stats.total]);
+
   if (!isOpen) return null;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { id, value, type } = e.target;
+
+    if (id === "totalEarnings") {
+      setTotalSales(value);
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [id]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Save User Settings
+    updateUserSettings({
+      ...formData,
+      messagesPro: Number(formData.messagesPro),
+      avatarIsImage: formData.avatarIsImage == "1" || formData.avatarIsImage === true
+    });
+
+    // 2. Save Total Earnings
+    // Remove '$' and spaces before parsing
+    const cleanTotal = parseFloat(String(totalSales).replace(/[^0-9.]/g, ""));
+    if (!isNaN(cleanTotal)) {
+      updateTotalEarnings(cleanTotal);
+    }
+
     onClose();
   };
 
@@ -36,19 +81,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <div className="form-group d-flex justify-content-between">
                 <div style={{ width: "50%" }}>
                   <label htmlFor="userName">User Name:</label>
-                  <input type="text" id="userName" className="form-control" placeholder="Enter User Name" value="Agency" />
+                  <input
+                    type="text"
+                    id="userName"
+                    className="form-control"
+                    placeholder="Enter User Name"
+                    value={formData.userName}
+                    onChange={handleChange}
+                  />
                 </div>
 
                 <div style={{ width: "47%" }}>
                   <label htmlFor="avatarName">Avatar Name:</label>
-                  <input type="text" id="avatarName" className="form-control" placeholder="Enter Avatar Name" value="Ag" />
+                  <input
+                    type="text"
+                    id="avatarName"
+                    className="form-control"
+                    placeholder="Enter Avatar Name"
+                    value={formData.avatarName}
+                    onChange={handleChange}
+                  />
                 </div>
               </div>
 
               {/* Avatar Image */}
               <div className="form-group">
                 <label htmlFor="avatarIsImage">Avatar Image:</label>
-                <select id="avatarIsImage" className="form-control">
+                <select
+                  id="avatarIsImage"
+                  className="form-control"
+                  value={formData.avatarIsImage ? "1" : "0"}
+                  onChange={handleChange}
+                >
                   <option value="0">No</option>
                   <option value="1">Yes</option>
                 </select>
@@ -57,18 +121,40 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               {/* Total Sales */}
               <div className="form-group">
                 <label htmlFor="totalEarnings">Total Sales ($):</label>
-                <input type="text" id="totalEarnings" inputMode="decimal" className="form-control" placeholder="Enter earnings" value="$ 2.94" />
+                <input
+                  type="text"
+                  id="totalEarnings"
+                  inputMode="decimal"
+                  className="form-control"
+                  placeholder="Enter earnings"
+                  value={String(totalSales).includes('$') ? totalSales : `$ ${totalSales}`}
+                  onChange={handleChange}
+                />
               </div>
 
               {/* App Version / Messages */}
               <div className="form-group d-flex justify-content-between">
                 <div style={{ width: "47%" }}>
                   <label htmlFor="appVersion">App Version:</label>
-                  <input type="text" id="appVersion" className="form-control" placeholder="Enter App Version" value="5.6.1" />
+                  <input
+                    type="text"
+                    id="appVersion"
+                    className="form-control"
+                    placeholder="Enter App Version"
+                    value={formData.appVersion}
+                    onChange={handleChange}
+                  />
                 </div>
                 <div style={{ width: "47%" }}>
-                  <label htmlFor="input_messages">Messages Pro:</label>
-                  <input type="number" id="input_messages" className="form-control" placeholder="Enter Messages pro" value="0" />
+                  <label htmlFor="messagesPro">Messages Pro:</label>
+                  <input
+                    type="number"
+                    id="messagesPro"
+                    className="form-control"
+                    placeholder="Enter Messages pro"
+                    value={formData.messagesPro}
+                    onChange={handleChange}
+                  />
                 </div>
               </div>
 
@@ -76,7 +162,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
               <div className="form-group d-flex justify-content-between">
                 <div style={{ width: "47%" }}>
                   <label htmlFor="timezone">Select Timezone:</label>
-                  <select id="timezone" className="form-control" value="UTC+01:00">
+                  <select id="timezone" className="form-control" value={formData.timezone} onChange={handleChange}>
                     <option value="UTC-12:00">UTC-12:00</option>
                     <option value="UTC-11:00">UTC-11:00</option>
                     <option value="UTC-10:00">UTC-10:00</option>
@@ -109,7 +195,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
                 <div style={{ width: "47%" }}>
                   <label htmlFor="headerAlignment">Header Alignment:</label>
-                  <select id="headerAlignment" className="form-control">
+                  <select id="headerAlignment" className="form-control" value={formData.headerAlignment} onChange={handleChange}>
                     <option value="left">Windows</option>
                     <option value="right">MacOS</option>
                   </select>
@@ -121,7 +207,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 <label className="toggle-container">
                   <span className="toggle-label text-muted">Show OF Badge</span>
                   <div className="toggle-switch">
-                    <input type="checkbox" id="showOfBadge" defaultChecked />
+                    <input
+                      type="checkbox"
+                      id="showOfBadge"
+                      checked={formData.showOfBadge}
+                      onChange={handleChange}
+                    />
                     <div className="slider" />
                   </div>
                 </label>

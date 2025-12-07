@@ -1,6 +1,8 @@
 // @ts-nocheck
-import React, { createContext, useContext, useCallback, useState } from "react";
+import React, { createContext, useContext, useCallback, useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
+
+// --- CONSTANTS & DEFAULTS ---
 
 const defaultChannels = ["subscriptions", "tips", "posts", "referrals", "messages", "streams"];
 
@@ -12,10 +14,8 @@ const defaultStats = {
   referrals: 0,
   messages: 0,
   streams: 0,
-  // NEW FIELDS
   creatorsCount: 0,
   refundedEarnings: 0,
-
   channelData: {
     subscriptions: [],
     tips: [],
@@ -23,7 +23,19 @@ const defaultStats = {
     referrals: [],
     messages: [],
     streams: []
-  }
+  },
+  graphData: [] // Legacy support
+};
+
+const defaultUserSettings = {
+  userName: "Agency",
+  avatarName: "Ag",
+  avatarIsImage: false,
+  appVersion: "5.6.1",
+  messagesPro: 0,
+  timezone: "UTC+01:00",
+  headerAlignment: "left",
+  showOfBadge: true
 };
 
 const defaultFilters = {
@@ -31,19 +43,22 @@ const defaultFilters = {
   viewMode: "week",
 };
 
-const COOKIE_KEY = "creatorStats_v3"; // Bump version to reset structure
+const COOKIE_KEY = "creatorStats_v6"; // Bump to v6 for clean slate
+
+// --- CONTEXT DEFINITION ---
 
 const CreatorStatsContext = createContext({
   stats: { ...defaultStats },
+  userSettings: { ...defaultUserSettings },
   filters: { ...defaultFilters },
+
   updateTotalEarnings: (value: number) => {},
   updateChannelValue: (channel: string, value: number) => {},
   updateGraphColumn: (index: number, newValue: number) => {},
   updateChannelGraphPoint: (channel: string, index: number, value: number) => {},
-
-  // NEW METHODS
   updateCreatorsCount: (value: number) => {},
   updateRefundedEarnings: (value: number) => {},
+  updateUserSettings: (settings: Partial<typeof defaultUserSettings>) => {},
 
   setDateRange: (range: string) => {},
   setViewMode: (mode: "day" | "week") => {},
@@ -52,8 +67,7 @@ const CreatorStatsContext = createContext({
 
 export const useCreatorStats = () => useContext(CreatorStatsContext);
 
-// ... (Keep all existing Helper functions: fallbackBaseDistribution, generateOrganicDistribution, getGraphLength, recalculation functions etc.) ...
-// ... (I'm omitting them here to save space, assume they are exactly as in your previous code block) ...
+// --- CALCULATION HELPERS ---
 
 const fallbackBaseDistribution = {
   subscriptions: 0.19,
@@ -63,7 +77,7 @@ const fallbackBaseDistribution = {
   messages: 41.84,
   streams: 0,
 };
-const fallbackBaseTotal = Object.values(fallbackBaseDistribution).reduce((sum, v) => sum + v, 0);
+const fallbackBaseTotal = 47.68;
 
 function getGraphLength(dateRange, viewMode) {
   const [startStr, endStr] = dateRange.split("_");
@@ -78,11 +92,14 @@ function generateOrganicDistribution(total, count) {
   if (count <= 0) return [];
   if (total <= 0) return Array(count).fill(0);
   if (count === 1) return [total];
+
   const weights = Array(count).fill(0).map(() => Math.random() + 0.3);
   const weightSum = weights.reduce((a, b) => a + b, 0);
   let distributed = weights.map(w => Number(((w / weightSum) * total).toFixed(2)));
+
   const currentSum = distributed.reduce((a, b) => a + b, 0);
   let diff = Number((total - currentSum).toFixed(2));
+
   if (diff !== 0) {
     const mid = Math.floor(count / 2);
     distributed[mid] = Number((distributed[mid] + diff).toFixed(2));
@@ -90,6 +107,7 @@ function generateOrganicDistribution(total, count) {
   return distributed.map(v => (v < 0 ? 0 : v));
 }
 
+// Recalculate based on NEW GRAND TOTAL
 function recalcFromGrandTotal(currentStats, newTotal, graphLen) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   const currentChildrenSum = defaultChannels.reduce((acc, ch) => acc + (currentStats[ch] || 0), 0);
@@ -114,9 +132,11 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen) {
   defaultChannels.forEach(ch => {
     const target = channelTargets[ch];
     nextStats[ch] = target;
+
     let arr = nextStats.channelData[ch] || [];
     if (arr.length !== graphLen) arr = Array(graphLen).fill(0);
     const arrSum = arr.reduce((a, b) => a + b, 0);
+
     if (arrSum === 0) {
       nextStats.channelData[ch] = generateOrganicDistribution(target, graphLen);
     } else {
@@ -127,248 +147,299 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen) {
   });
 
   nextStats.total = Number(actualTotal.toFixed(2));
-  nextStats.graphData = Array(graphLen).fill(0).map((_, i) => {
-    return defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0);
-  });
+  nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
+    defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0)
+  );
   return nextStats;
 }
 
+// Recalculate based on CHANNEL INPUT
 function recalcFromChannelInput(currentStats, channel, newValue, graphLen) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   nextStats[channel] = Number(newValue.toFixed(2));
+
   let arr = nextStats.channelData[channel] || [];
   if (arr.length !== graphLen) arr = Array(graphLen).fill(0);
   const arrSum = arr.reduce((a, b) => a + b, 0);
+
   if (arrSum === 0) {
     nextStats.channelData[channel] = generateOrganicDistribution(newValue, graphLen);
   } else {
     const ratio = newValue / arrSum;
     nextStats.channelData[channel] = arr.map(v => Number((v * ratio).toFixed(2)));
   }
+
   const newTotal = defaultChannels.reduce((sum, ch) => sum + (nextStats[ch] || 0), 0);
   nextStats.total = Number(newTotal.toFixed(2));
-  nextStats.graphData = Array(graphLen).fill(0).map((_, i) => {
-    return defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0);
-  });
+  nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
+    defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0)
+  );
   return nextStats;
 }
 
+// Recalculate based on POINT DRAG
 function recalcFromPointDrag(currentStats, channel, index, pointValue, graphLen) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
+
   const newArr = [...(nextStats.channelData[channel] || Array(graphLen).fill(0))];
   newArr[index] = Number(pointValue.toFixed(2));
   nextStats.channelData[channel] = newArr;
+
   const newChanSum = newArr.reduce((a, b) => a + b, 0);
   nextStats[channel] = Number(newChanSum.toFixed(2));
+
   const newTotal = defaultChannels.reduce((sum, ch) => sum + (nextStats[ch] || 0), 0);
   nextStats.total = Number(newTotal.toFixed(2));
-  nextStats.graphData = Array(graphLen).fill(0).map((_, i) => {
-    return defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0);
-  });
+  nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
+    defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0)
+  );
   return nextStats;
 }
 
+// Recalculate based on GRAPH COLUMN DRAG (Highcharts)
+function recalcFromGraphColumn(currentStats, index, newValue, graphLen) {
+  const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
+
+  const oldTotalAtIdx = defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][index] || 0), 0);
+
+  defaultChannels.forEach(ch => {
+    const currentVal = nextStats.channelData[ch][index] || 0;
+    let newVal = 0;
+    if (oldTotalAtIdx === 0) {
+      const base = fallbackBaseDistribution[ch];
+      const ratio = base / fallbackBaseTotal;
+      newVal = Number((newValue * ratio).toFixed(2));
+    } else {
+      const ratio = currentVal / oldTotalAtIdx;
+      newVal = Number((newValue * ratio).toFixed(2));
+    }
+    nextStats.channelData[ch] = [...nextStats.channelData[ch]];
+    nextStats.channelData[ch][index] = newVal;
+  });
+
+  let grandTotal = 0;
+  defaultChannels.forEach(ch => {
+    const s = nextStats.channelData[ch].reduce((a, b) => a + b, 0);
+    nextStats[ch] = Number(s.toFixed(2));
+    grandTotal += s;
+  });
+  nextStats.total = Number(grandTotal.toFixed(2));
+  nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
+    defaultChannels.reduce((sum, ch) => sum + nextStats.channelData[ch][i], 0)
+  );
+  return nextStats;
+}
+
+// ======= PROVIDER =======
+
 export const CreatorStatsProvider = ({ children }) => {
-  const [filters, setFilters] = useState(() => {
-    try { return JSON.parse(Cookies.get(COOKIE_KEY) || "{}").filters || { ...defaultFilters }; }
-    catch { return { ...defaultFilters }; }
+  // 1. SINGLE STATE OBJECT (Source of Truth)
+  const [state, setState] = useState(() => {
+    try {
+      const raw = Cookies.get(COOKIE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return {
+        statsByFilter: parsed.statsByFilter || {},
+        filters: parsed.filters || defaultFilters,
+        userSettings: parsed.userSettings || defaultUserSettings
+      };
+    } catch {
+      return { statsByFilter: {}, filters: defaultFilters, userSettings: defaultUserSettings };
+    }
   });
 
-  const [statsByFilter, setStatsByFilter] = useState(() => {
-    try { return JSON.parse(Cookies.get(COOKIE_KEY) || "{}").statsByFilter || {}; }
-    catch { return {}; }
-  });
+  // 2. PERSISTENCE EFFECT
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    Cookies.set(COOKIE_KEY, JSON.stringify(state), { expires: 365 });
+  }, [state]);
 
-  const persistCookie = (newStatsByFilter, newFilters) => {
-    Cookies.set(COOKIE_KEY, JSON.stringify({ statsByFilter: newStatsByFilter, filters: newFilters }), { expires: 365 });
-  };
+  const filterKey = `${state.filters.dateRange}:${state.filters.viewMode}`;
 
-  const filterKey = `${filters.dateRange}:${filters.viewMode}`;
-
-  const ensureStatsExist = (currentStatsByFilter, fRange, fMode, sourceStats = null) => {
+  // --- INTERNAL HELPER to Init Stats ---
+  const ensureStats = (statsMap, fRange, fMode, sourceStats = null) => {
     const key = `${fRange}:${fMode}`;
-    const existing = currentStatsByFilter[key];
-    const neededLen = getGraphLength(fRange, fMode);
-    const initChannelData = () => {
-      const d = {};
-      defaultChannels.forEach(ch => d[ch] = Array(neededLen).fill(0));
-      return d;
-    };
+    const len = getGraphLength(fRange, fMode);
+    const existing = statsMap[key];
 
-    if (!existing) {
-      if (sourceStats) {
-        const newStats = { ...defaultStats, channelData: {}, creatorsCount: sourceStats.creatorsCount || 0, refundedEarnings: sourceStats.refundedEarnings || 0 };
-        let totalSum = 0;
-        defaultChannels.forEach(ch => {
-          const val = sourceStats[ch] || 0;
-          newStats[ch] = val;
-          newStats.channelData[ch] = generateOrganicDistribution(val, neededLen);
-          totalSum += val;
-        });
-        newStats.total = Number(totalSum.toFixed(2));
-        newStats.graphData = Array(neededLen).fill(0).map((_, i) =>
-          defaultChannels.reduce((sum, ch) => sum + newStats.channelData[ch][i], 0)
-        );
-        return { ...currentStatsByFilter, [key]: newStats };
-      }
-      return { ...currentStatsByFilter, [key]: { ...defaultStats, channelData: initChannelData(), graphData: Array(neededLen).fill(0) } };
-    }
+    // Check existence & validity
+    if (!existing || !existing.channelData || existing.channelData.subscriptions.length !== len) {
+      const base = sourceStats ? { ...sourceStats } : { ...defaultStats };
+      const newChannelData = {};
 
-    if (!existing.channelData || existing.channelData.subscriptions.length !== neededLen) {
-      const newStats = { ...existing, channelData: {} };
       defaultChannels.forEach(ch => {
-        newStats.channelData[ch] = generateOrganicDistribution(existing[ch] || 0, neededLen);
+        // If copying from another view, distribute organically. If new, 0s.
+        const targetVal = sourceStats ? (base[ch] || 0) : 0;
+        newChannelData[ch] = sourceStats ? generateOrganicDistribution(targetVal, len) : Array(len).fill(0);
       });
-      newStats.graphData = Array(neededLen).fill(0).map((_, i) =>
-        defaultChannels.reduce((sum, ch) => sum + newStats.channelData[ch][i], 0)
-      );
-      return { ...currentStatsByFilter, [key]: newStats };
+
+      // Don't copy Creators/Refunds if just switching view, keep them attached to filter logic or copy?
+      // Usually Counts persist across views, so copying is good.
+
+      return {
+        ...statsMap,
+        [key]: {
+          ...base,
+          channelData: newChannelData,
+          graphData: Array(len).fill(0).map((_, i) =>
+            defaultChannels.reduce((sum, ch) => sum + newChannelData[ch][i], 0)
+          )
+        }
+      };
     }
-    return currentStatsByFilter;
+    return statsMap;
   };
 
-  const setDateRange = useCallback(range => {
-    setFilters(f => {
-      const newFilters = { ...f, dateRange: range };
-      setStatsByFilter(prev => {
-        const withInit = ensureStatsExist(prev, range, newFilters.viewMode, null);
-        persistCookie(withInit, newFilters);
-        return withInit;
-      });
-      return newFilters;
+  // --- PUBLIC UPDATERS ---
+
+  const updateUserSettings = useCallback((newSettings) => {
+    setState(prev => ({
+      ...prev,
+      userSettings: { ...prev.userSettings, ...newSettings }
+    }));
+  }, []);
+
+  const setViewMode = useCallback((mode) => {
+    setState(prev => {
+      const currentKey = `${prev.filters.dateRange}:${prev.filters.viewMode}`;
+      const currentStats = prev.statsByFilter[currentKey];
+
+      const newFilters = { ...prev.filters, viewMode: mode };
+      const newStatsMap = ensureStats(prev.statsByFilter, newFilters.dateRange, mode, currentStats);
+
+      return { ...prev, filters: newFilters, statsByFilter: newStatsMap };
     });
   }, []);
 
-  const setViewMode = useCallback(mode => {
-    setFilters(f => {
-      const newFilters = { ...f, viewMode: mode };
-      setStatsByFilter(prev => {
-        const oldKey = `${f.dateRange}:${f.viewMode}`;
-        const oldStats = prev[oldKey];
-        const withInit = ensureStatsExist(prev, newFilters.dateRange, mode, oldStats);
-        persistCookie(withInit, newFilters);
-        return withInit;
-      });
-      return newFilters;
+  const setDateRange = useCallback((range) => {
+    setState(prev => {
+      const newFilters = { ...prev.filters, dateRange: range };
+      // When changing dates, start FRESH (null source), unless you want to copy values
+      const newStatsMap = ensureStats(prev.statsByFilter, range, prev.filters.viewMode, null);
+      return { ...prev, filters: newFilters, statsByFilter: newStatsMap };
     });
   }, []);
 
-  const updateTotalEarnings = useCallback(value => {
-    setStatsByFilter(prev => {
-      const len = getGraphLength(filters.dateRange, filters.viewMode);
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const updatedStats = recalcFromGrandTotal(withInit[filterKey], value, len);
-      const final = { ...withInit, [filterKey]: updatedStats };
-      persistCookie(final, filters);
-      return final;
+  const updateTotalEarnings = useCallback((value) => {
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+      const len = getGraphLength(fRange, fMode);
+
+      const statsMap = ensureStats(prev.statsByFilter, fRange, fMode);
+      const updatedStats = recalcFromGrandTotal(statsMap[key], value, len);
+
+      return { ...prev, statsByFilter: { ...statsMap, [key]: updatedStats } };
     });
-  }, [filterKey, filters]);
+  }, []);
 
   const updateChannelValue = useCallback((channel, value) => {
-    if (!defaultChannels.includes(channel)) return;
-    setStatsByFilter(prev => {
-      const len = getGraphLength(filters.dateRange, filters.viewMode);
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const updatedStats = recalcFromChannelInput(withInit[filterKey], channel, value, len);
-      const final = { ...withInit, [filterKey]: updatedStats };
-      persistCookie(final, filters);
-      return final;
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+      const len = getGraphLength(fRange, fMode);
+
+      const statsMap = ensureStats(prev.statsByFilter, fRange, fMode);
+      const updatedStats = recalcFromChannelInput(statsMap[key], channel, value, len);
+
+      return { ...prev, statsByFilter: { ...statsMap, [key]: updatedStats } };
     });
-  }, [filterKey, filters]);
+  }, []);
 
   const updateChannelGraphPoint = useCallback((channel, index, value) => {
-    setStatsByFilter(prev => {
-      const len = getGraphLength(filters.dateRange, filters.viewMode);
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const updatedStats = recalcFromPointDrag(withInit[filterKey], channel, index, value, len);
-      const final = { ...withInit, [filterKey]: updatedStats };
-      persistCookie(final, filters);
-      return final;
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+      const len = getGraphLength(fRange, fMode);
+
+      const statsMap = ensureStats(prev.statsByFilter, fRange, fMode);
+      const updatedStats = recalcFromPointDrag(statsMap[key], channel, index, value, len);
+
+      return { ...prev, statsByFilter: { ...statsMap, [key]: updatedStats } };
     });
-  }, [filterKey, filters]);
+  }, []);
 
   const updateGraphColumn = useCallback((index, value) => {
-    setStatsByFilter(prev => {
-      const len = getGraphLength(filters.dateRange, filters.viewMode);
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const stats = { ...withInit[filterKey], channelData: { ...withInit[filterKey].channelData } };
-      const oldTotalAtIdx = defaultChannels.reduce((sum, ch) => sum + (stats.channelData[ch][index] || 0), 0);
-      defaultChannels.forEach(ch => {
-        const currentVal = stats.channelData[ch][index] || 0;
-        let newVal = 0;
-        if (oldTotalAtIdx === 0) {
-          const base = fallbackBaseDistribution[ch];
-          const ratio = base / fallbackBaseTotal;
-          newVal = Number((value * ratio).toFixed(2));
-        } else {
-          const ratio = currentVal / oldTotalAtIdx;
-          newVal = Number((value * ratio).toFixed(2));
-        }
-        stats.channelData[ch] = [...stats.channelData[ch]];
-        stats.channelData[ch][index] = newVal;
-      });
-      let grandTotal = 0;
-      defaultChannels.forEach(ch => {
-        const s = stats.channelData[ch].reduce((a, b) => a + b, 0);
-        stats[ch] = Number(s.toFixed(2));
-        grandTotal += s;
-      });
-      stats.total = Number(grandTotal.toFixed(2));
-      stats.graphData = Array(len).fill(0).map((_, i) =>
-        defaultChannels.reduce((sum, ch) => sum + stats.channelData[ch][i], 0)
-      );
-      const final = { ...withInit, [filterKey]: stats };
-      persistCookie(final, filters);
-      return final;
-    });
-  }, [filterKey, filters]);
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+      const len = getGraphLength(fRange, fMode);
 
-  // === NEW UPDATERS FOR CREATORS & REFUND ===
-  const updateCreatorsCount = useCallback((value) => {
-    setStatsByFilter(prev => {
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const updated = { ...withInit[filterKey], creatorsCount: value };
-      const final = { ...withInit, [filterKey]: updated };
-      persistCookie(final, filters);
-      return final;
+      const statsMap = ensureStats(prev.statsByFilter, fRange, fMode);
+      const updatedStats = recalcFromGraphColumn(statsMap[key], index, value, len);
+
+      return { ...prev, statsByFilter: { ...statsMap, [key]: updatedStats } };
     });
-  }, [filterKey, filters]);
+  }, []);
+
+  const updateCreatorsCount = useCallback((value) => {
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+
+      const statsMap = ensureStats(prev.statsByFilter, fRange, fMode);
+      const updated = { ...statsMap[key], creatorsCount: value };
+
+      return { ...prev, statsByFilter: { ...statsMap, [key]: updated } };
+    });
+  }, []);
 
   const updateRefundedEarnings = useCallback((value) => {
-    setStatsByFilter(prev => {
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const updated = { ...withInit[filterKey], refundedEarnings: value };
-      const final = { ...withInit, [filterKey]: updated };
-      persistCookie(final, filters);
-      return final;
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+
+      const statsMap = ensureStats(prev.statsByFilter, fRange, fMode);
+      const updated = { ...statsMap[key], refundedEarnings: value };
+
+      return { ...prev, statsByFilter: { ...statsMap, [key]: updated } };
     });
-  }, [filterKey, filters]);
+  }, []);
 
   const resetStats = useCallback(() => {
-    setStatsByFilter(prev => {
-      const withInit = ensureStatsExist(prev, filters.dateRange, filters.viewMode);
-      const final = { ...withInit, [filterKey]: undefined };
-      persistCookie(final, filters);
-      return final;
-    });
-  }, [filterKey, filters]);
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
+      const key = `${fRange}:${fMode}`;
+      const len = getGraphLength(fRange, fMode);
 
-  const currentStats = (() => {
-    const len = getGraphLength(filters.dateRange, filters.viewMode);
-    if (!statsByFilter[filterKey]) return { ...defaultStats, graphData: Array(len).fill(0) };
-    return statsByFilter[filterKey];
-  })();
+      // Just overwrite with default
+      const cleanStats = {
+        ...defaultStats,
+        graphData: Array(len).fill(0),
+        channelData: defaultStats.channelData // will need init
+      };
+      // Re-init channel arrays
+      defaultChannels.forEach(ch => cleanStats.channelData[ch] = Array(len).fill(0));
+
+      return { ...prev, statsByFilter: { ...prev.statsByFilter, [key]: cleanStats } };
+    });
+  }, []);
+
+  // Get current stats slice or fallback
+  const currentStats = state.statsByFilter[filterKey] || defaultStats;
 
   const ctx = {
     stats: currentStats,
-    filters,
+    filters: state.filters,
+    userSettings: state.userSettings,
     updateTotalEarnings,
     updateChannelValue,
     updateGraphColumn,
     updateChannelGraphPoint,
-    // EXPORT NEW METHODS
     updateCreatorsCount,
     updateRefundedEarnings,
+    updateUserSettings,
     setDateRange,
     setViewMode,
     resetStats,
