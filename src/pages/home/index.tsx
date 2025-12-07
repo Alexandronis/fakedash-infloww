@@ -1,13 +1,21 @@
-import React from 'react';
-import CreatorEarningsOverview from "../../components/homePage/CreatorEarningsOverview.tsx";
+// @ts-nocheck
+import React, { useState } from 'react';
+import CreatorEarningsOverview from "../../components/homePage/CreatorEarningsOverview"; // Ensure correct path
+import HomeEmployeeChart from "../../components/charts/homeEmployeeChart.tsx"; // Ensure correct path
 import './home.scss';
 
 const HomePage: React.FC = () => {
+  // Local state for the "Yesterday/Today/Week" filter on Home Page
+  const [timeFilter, setTimeFilter] = useState("week");
+
   return (
     <div className="dashboard-content">
       <div className="row">
         <div className="col-12">
-          <CreatorEarningsOverview />
+          <CreatorEarningsOverview
+            activeFilter={timeFilter}
+            onFilterChange={setTimeFilter}
+          />
         </div>
         <div className="col-lg-3 charts">
           <div className="main-card-wrap charts">
@@ -47,9 +55,10 @@ const HomePage: React.FC = () => {
                   <p>No employees have clocked in.</p>
                 </div>
               </div>
-              <div id="employee-sales" data-highcharts-chart="0">
-                {/* Highchart goes here */}
-              </div>
+
+              {/* Highchart Component */}
+              <HomeEmployeeChart timeFilter={timeFilter} />
+
             </div>
             <div className="main-card-wrap charts1">
               <div className="main-card-heading">

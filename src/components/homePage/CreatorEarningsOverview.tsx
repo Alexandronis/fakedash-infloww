@@ -1,13 +1,20 @@
 // @ts-nocheck
 import React, { useState } from 'react';
-import { useCreatorStats } from '../../context/CreatorStatsContext';
-import EditableEarningsField from '../editableEarningsField';
+import { useCreatorStats } from '../../context/CreatorStatsContext'; // Adjust path if needed
+import EditableEarningsField from '../editableEarningsField'; // Adjust path if needed
 
-const CreatorEarningsOverview: React.FC = () => {
+interface CreatorEarningsOverviewProps {
+  activeFilter: string;
+  onFilterChange: (filter: string) => void;
+}
+
+const CreatorEarningsOverview: React.FC<CreatorEarningsOverviewProps> = ({
+ activeFilter,
+ onFilterChange
+}) => {
   const [selectedEarnings, setSelectedEarnings] = useState("Gross earnings");
   const earningsOptions = ["Gross earnings", "Net earnings"];
 
-  // 1. Connect to Context
   const {
     stats,
     userSettings,
@@ -85,17 +92,17 @@ const CreatorEarningsOverview: React.FC = () => {
           </div>
 
           <ul className="time-selector">
-            <li id="yesterday">
-              <button type="button">Yesterday</button>
+            <li id="yesterday" className={activeFilter === 'yesterday' ? 'active' : ''}>
+              <button type="button" onClick={() => onFilterChange('yesterday')}>Yesterday</button>
             </li>
-            <li id="today">
-              <button type="button">Today</button>
+            <li id="today" className={activeFilter === 'today' ? 'active' : ''}>
+              <button type="button" onClick={() => onFilterChange('today')}>Today</button>
             </li>
-            <li id="week" className="active">
-              <button type="button">This week</button>
+            <li id="week" className={activeFilter === 'week' ? 'active' : ''}>
+              <button type="button" onClick={() => onFilterChange('week')}>This week</button>
             </li>
-            <li id="month">
-              <button type="button">This month</button>
+            <li id="month" className={activeFilter === 'month' ? 'active' : ''}>
+              <button type="button" onClick={() => onFilterChange('month')}>This month</button>
             </li>
           </ul>
         </div>
@@ -106,7 +113,6 @@ const CreatorEarningsOverview: React.FC = () => {
           <div className="overview-inner">
             <img src="/of-icon.svg" alt="" />
             <p>Total earnings</p>
-            {/* EDITABLE TOTAL */}
             <EditableEarningsField
               value={stats.total}
               onChange={updateTotalEarnings}
@@ -118,7 +124,6 @@ const CreatorEarningsOverview: React.FC = () => {
         <div className="overview-col">
           <div className="overview-card">
             <div className="card-content">
-              {/* EDITABLE SUBSCRIPTIONS */}
               <EditableEarningsField
                 value={stats.subscriptions}
                 onChange={(v) => updateChannelValue("subscriptions", v)}
@@ -131,7 +136,6 @@ const CreatorEarningsOverview: React.FC = () => {
 
           <div className="overview-card">
             <div className="card-content">
-              {/* EDITABLE TIPS */}
               <EditableEarningsField
                 value={stats.tips}
                 onChange={(v) => updateChannelValue("tips", v)}
@@ -146,7 +150,6 @@ const CreatorEarningsOverview: React.FC = () => {
         <div className="overview-col">
           <div className="overview-card">
             <div className="card-content">
-              {/* EDITABLE POSTS */}
               <EditableEarningsField
                 value={stats.posts}
                 onChange={(v) => updateChannelValue("posts", v)}
@@ -159,7 +162,6 @@ const CreatorEarningsOverview: React.FC = () => {
 
           <div className="overview-card">
             <div className="card-content">
-              {/* EDITABLE REFERRALS */}
               <EditableEarningsField
                 value={stats.referrals}
                 onChange={(v) => updateChannelValue("referrals", v)}
@@ -174,7 +176,6 @@ const CreatorEarningsOverview: React.FC = () => {
         <div className="overview-col">
           <div className="overview-card">
             <div className="card-content">
-              {/* EDITABLE MESSAGES */}
               <EditableEarningsField
                 value={stats.messages}
                 onChange={(v) => updateChannelValue("messages", v)}
@@ -187,7 +188,6 @@ const CreatorEarningsOverview: React.FC = () => {
 
           <div className="overview-card">
             <div className="card-content">
-              {/* EDITABLE STREAMS */}
               <EditableEarningsField
                 value={stats.streams}
                 onChange={(v) => updateChannelValue("streams", v)}
