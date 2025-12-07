@@ -243,6 +243,13 @@
                         line-height: 1.2;
                         color: #2d74ff;
                         font-weight: 700;
+                        &.total-earning {
+                            align-items: baseline !important;
+                            font-size: 32px;
+                            & > div {
+                                font-size: 32px !important;
+                            }
+                        }
                         .dollar-sign {
                             position: relative;
                             top: -1px;
@@ -270,6 +277,19 @@
                             color: white;
                             font-weight: 700;
                             margin-bottom: 2px;
+                            &.sub-earning, &.posts-earning, &.msg-earning, &.tips-earning, &.ref-earning, &.streams-earning  {
+                                font-size: 20px;
+                                color: #fff !important;
+                                height: 24px;
+                                & > div {
+                                    color: #fff !important;
+                                    font-size: 20px !important;
+                                }
+                                & > span {
+                                    color: #fff !important;
+                                    font-size: 20px !important;
+                                }
+                            }
                         }
                         p {
                             font-size: 13px;

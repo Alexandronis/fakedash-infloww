@@ -1,6 +1,11 @@
 import React from "react";
+import { useCreatorStats } from "../../context/CreatorStatsContext.tsx";
 
 const CreatorStatistics: React.FC = () => {
+  const {
+    stats,
+  } = useCreatorStats();
+
   return (
     <div className="stats-wrap" style={{ position: "relative" }}>
       <div className="stats-header">
@@ -276,7 +281,7 @@ const CreatorStatistics: React.FC = () => {
         </div>
         <div className="card">
           <div className="card-content">
-            <p className="display-5 msg-earning-bottom">$11.38</p>
+            <p className="display-5 msg-earning-bottom">${stats.messages}</p>
             <h5 className="card-title">
               Message Earnings
               <button type="button" className="info-btn">
@@ -287,7 +292,7 @@ const CreatorStatistics: React.FC = () => {
         </div>
         <div className="card">
           <div className="card-content">
-            <p className="display-5 total-earning-bottom">$11.44</p>
+            <p className="display-5 total-earning-bottom">${stats.total}</p>
             <h5 className="card-title">
               Total Earnings
               <button type="button" className="info-btn">
