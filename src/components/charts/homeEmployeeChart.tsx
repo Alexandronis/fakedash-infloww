@@ -107,6 +107,10 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
   }, [stats.graphData, timeFilter]);
 
   useEffect(() => {
+    // Logic to skip labels in Month view to prevent crowding
+    // 1 = show all, 4 = show every 4th label
+    const labelStep = timeFilter.includes('month') ? 2 : 1;
+
     const options: Highcharts.Options = {
       chart: { type: "areaspline", backgroundColor: "transparent", borderColor: "#334eff", marginTop: 80, style: { fontFamily: "Inter, sans-serif" }, animation: false },
       title: {
@@ -121,7 +125,18 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         lineColor: "#E6E6E6",
         lineWidth: 0,
         tickColor: "transparent",
-        labels: { style: { color: "#999999", fontSize: "0.8em" }, y: 25, rotation: 0, autoRotation: false },
+        labels: {
+          // === PARAMETERS TO PLAY WITH ===
+          style: {
+            color: "#999999",
+            fontSize: "13px", // Make font smaller (was 0.8em)
+            textOverflow: "none" // Prevents "D..." truncation
+          },
+          y: 25,
+          rotation: 0,
+          autoRotation: false,
+          step: labelStep // Dynamic stepping (1 for week, 4 for month)
+        },
         gridLineColor: "#707073",
       },
       yAxis: { title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1, labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 } },
@@ -151,7 +166,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       series: [{ name: "Sales", data: chartData.seriesData }]
     };
     setChartOptions(options);
-  }, [chartData]);
+  }, [chartData, timeFilter]); // Add timeFilter to dependency array
 
   return <div id="employee-sales"><HighchartsReact highcharts={Highcharts} options={chartOptions} /></div>;
 };
