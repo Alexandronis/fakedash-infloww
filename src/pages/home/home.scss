@@ -177,6 +177,11 @@
                             left: -1px;
                             font-family: "Inter", sans-serif !important;
                         }
+                        &.total-earning {
+                            .dollar-sign {
+                                height: 42px;
+                            }
+                        }
                     }
                 }
                 .overview-card {
