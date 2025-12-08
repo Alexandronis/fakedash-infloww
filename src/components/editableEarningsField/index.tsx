@@ -7,25 +7,26 @@ interface EditableEarningsFieldProps {
   className?: string;
   children?: React.ReactNode;
   currency?: boolean;
-  style?: React.CSSProperties; // Allow external styles
+  style?: React.CSSProperties;
 }
 
 function extractNumber(txt: string): number | null {
-  const numMatch = txt.match(/([0-9,.]+)/);
-  if (!numMatch) return null;
-  let clean = numMatch[1].replace(/,/g, "");
+  // Remove all commas and currency symbols before parsing
+  // Match first sequence of digits/dots
+  // Example: "$ 10,000.00" -> "10000.00"
+  const clean = txt.replace(/[^0-9.]/g, "");
   let num = parseFloat(clean);
   return isNaN(num) ? null : num;
 }
 
 const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
-                                                                       value,
-                                                                       onChange,
-                                                                       className = "",
-                                                                       children,
-                                                                       currency = true,
-                                                                       style = {}
-                                                                     }) => {
+ value,
+ onChange,
+ className = "",
+ children,
+ currency = true,
+ style = {}
+}) => {
   const [editing, setEditing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -57,8 +58,6 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
       let txt = ref.current.innerText;
       let parsed = extractNumber(txt);
       if (parsed !== null) {
-        // If it's a counter (no currency), force integer? Optional, but safer.
-        // For now, just passing parsed number.
         onChange(parsed);
       } else {
         ref.current.innerText = formatValue(value);
@@ -67,8 +66,14 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
   };
 
   // Helper to format display
+  // 10000 -> "10,000.00" (if currency=true)
+  // 10000 -> "10000" (if currency=false)
   const formatValue = (val: number) => {
-    return currency ? val.toFixed(2) : Math.floor(val).toString();
+    if (currency) {
+      // Add commas and force 2 decimals
+      return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return Math.floor(val).toString(); // Integers for counts
   };
 
   return (
@@ -81,7 +86,7 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
         display: "flex",
         alignItems: "center",
         outline: editing ? "2px solid #2D74FF" : "none",
-        ...style // Merge passed styles (like color: inherit)
+        ...style
       }}
       onClick={() => !editing && handleClick()}
     >
@@ -89,7 +94,6 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
         <span
           className="dollar-sign"
           style={{
-            // Dollar sign usually keeps its blue color unless overridden explicitly
             fontSize: "24px",
             color: style.color === "inherit" ? "inherit" : "#2D74FF",
             lineHeight: "48px",
@@ -110,7 +114,6 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
         tabIndex={0}
         style={{
           outline: "none",
-          // Default to blue unless inherited
           color: style.color === "inherit" ? "inherit" : "#2D74FF",
           background: "transparent",
           border: "none",
