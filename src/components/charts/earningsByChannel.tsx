@@ -26,8 +26,7 @@ const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
     while (current <= endDate) {
       const weekEnd = new Date(current);
       weekEnd.setDate(current.getDate() + 6);
-      const finalEnd = weekEnd > endDate ? endDate : weekEnd;
-      const label = `${current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${finalEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      const label = `${current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
       categories.push(label);
       current.setDate(current.getDate() + 7);
       if (categories.length > 52) break;
@@ -92,20 +91,42 @@ const EarningsByChannelGraph: React.FC = () => {
   const chartRef = useRef<Chart | null>(null);
   const { stats, filters, updateChannelGraphPoint } = useCreatorStats();
 
+  // Use ref to access update function inside closure
   const updateRef = useRef(updateChannelGraphPoint);
   useEffect(() => { updateRef.current = updateChannelGraphPoint; }, [updateChannelGraphPoint]);
+
+  // Use ref to access current filter mode inside closure
+  const filterRef = useRef(filters.viewMode);
+  useEffect(() => { filterRef.current = filters.viewMode; }, [filters.viewMode]);
 
   const labels = useMemo(() => generateLabels(filters.dateRange, filters.viewMode), [filters.dateRange, filters.viewMode]);
 
   const datasets = useMemo(() => {
     return Object.keys(CHANNEL_COLORS).map((channel) => {
-      let data = stats.channelData ? stats.channelData[channel] : [];
-      if (!data || data.length !== labels.length) {
-        data = Array(labels.length).fill(0);
+      let rawData = stats.channelData ? stats.channelData[channel] : [];
+      if (!rawData) rawData = [];
+
+      let displayData = [];
+
+      // === AGGREGATION LOGIC ===
+      if (filters.viewMode === "week") {
+        // Aggregate 14 days -> 2 weeks
+        const w1 = rawData.slice(0, 7).reduce((a,b) => a+b, 0);
+        const w2 = rawData.slice(7, 14).reduce((a,b) => a+b, 0);
+        displayData = [w1, w2];
+      } else {
+        displayData = rawData;
       }
+
+      if (displayData.length !== labels.length) {
+        const diff = labels.length - displayData.length;
+        if (diff > 0) displayData = [...displayData, ...Array(diff).fill(0)];
+        else displayData = displayData.slice(0, labels.length);
+      }
+
       return {
         label: channel.charAt(0).toUpperCase() + channel.slice(1),
-        data: data,
+        data: displayData,
         backgroundColor: CHANNEL_COLORS[channel],
         borderColor: CHANNEL_COLORS[channel],
         pointBackgroundColor: CHANNEL_COLORS[channel],
@@ -120,7 +141,7 @@ const EarningsByChannelGraph: React.FC = () => {
         channelKey: channel
       };
     });
-  }, [stats.channelData, labels, stats]);
+  }, [stats.channelData, labels, filters.viewMode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -162,8 +183,34 @@ const EarningsByChannelGraph: React.FC = () => {
                 chart.options.scales.y.max = value + 5;
                 chart.update('none');
               }
+
               const channelKey = datasets[datasetIndex].channelKey;
-              updateRef.current(channelKey, index, value);
+              const currentMode = filterRef.current;
+
+              // === DRAG LOGIC ===
+              if (currentMode === "day") {
+                // Direct update
+                updateRef.current(channelKey, index, value);
+              } else {
+                // WEEK DRAG LOGIC
+                // 1. Calculate average daily value for the new Weekly Total
+                const dailyVal = value / 7;
+
+                // 2. Determine index range in the daily array
+                // Week 0 -> Days 0-6
+                // Week 1 -> Days 7-13
+                const startIdx = index * 7;
+
+                // 3. Update ALL 7 days in context
+                // Since updateChannelGraphPoint recalculates Total every time,
+                // calling it 7 times in a row might be heavy but it works.
+                // A bulk update method would be better, but this gets the job done.
+                for(let i=0; i<7; i++) {
+                  // We use setTimeout to push these to the event loop
+                  // or just call sequentially. React batching might help.
+                  updateRef.current(channelKey, startIdx + i, dailyVal);
+                }
+              }
             },
           }
         },
@@ -180,13 +227,9 @@ const EarningsByChannelGraph: React.FC = () => {
           },
           y: {
             min: 0,
-            border: {
-              display: false // Hides the solid axis line on the left
-            },
+            border: { display: false },
             grid: {
-              // Make lines lighter grey
               color: "rgba(255, 255, 255, 0.15)",
-              // Explicit dash pattern: 8px line, 6px space
               borderDash: [8, 6],
               drawBorder: false,
               tickLength: 8
@@ -206,7 +249,7 @@ const EarningsByChannelGraph: React.FC = () => {
     return () => {
       if (chartRef.current) chartRef.current.destroy();
     };
-  }, [labels, datasets]);
+  }, [labels, datasets]); // Removed filters.viewMode dependency to prevent loop, used ref
 
   return (
     <div style={{ padding: "10px" }} className="earnings-by-channel-wrapper">
