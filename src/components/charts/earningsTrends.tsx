@@ -86,7 +86,51 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
     title: { text: "" }, legend: { enabled: false }, credits: { enabled: false },
     yAxis: { min: 0, gridLineDashStyle: "Dash", gridLineColor: "#3e3e3e", title: { text: "" }, labels: { style: { color: "#999999" } }, tickInterval: 5 },
     xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 } },
-    tooltip: { enabled: true, backgroundColor: "#121212EE", style: { color: "#fff" }, pointFormat: `<span style="color:{point.color}">●</span> {series.name}: <b>{point.y}</b><br/>`, valuePrefix: "$" },
+    tooltip: {
+      enabled: true,
+      backgroundColor: "#121212EE",
+      style: {
+        color: "#fff",
+        cursor: "default",
+        fontSize: "16px",
+        lineHeight: "20px",
+      },
+      borderColor: "#808080",    // ← white border
+      borderWidth: 1,          // ← thickness
+      borderRadius: 5,
+      followPointer: true,
+      followTouchMove: true,
+      padding: 10,
+      shadow: false,
+      shape: "callout",
+      shared: true,
+      snap: 0,
+      stickOnContact: false,
+
+      formatter: function () {
+        const point = this.point;
+        const index = point.index;
+
+        // Category date text (e.g. "Dec 7")
+        const dateLabel = this.series.xAxis.categories[index];
+
+        // Calculate growth vs previous point
+        const prevPoint = this.series.points[index - 1];
+        let growthText = "—";
+        if (prevPoint) {
+          const prev = prevPoint.y;
+          const curr = point.y;
+          const growth = ((curr - prev) / prev) * 100;
+          growthText = `${growth >= 0 ? "+" : ""}${growth.toFixed(1)}%`;
+        }
+
+        return `
+      <span>&nbsp;${dateLabel}</span><br/>
+      <span>${this.series.name}: $${point.y}</span><br/>
+      Growth: ${growthText}
+    `;
+      }
+    },
     plotOptions: {
       series: {
         dragDrop: { draggableY: true, dragMinY: 0, dragPrecisionY: 0.01, dragHandle: { color: 'transparent', lineColor: 'transparent' } },
