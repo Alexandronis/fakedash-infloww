@@ -13,6 +13,148 @@ import {
 import dragData from "chartjs-plugin-dragdata";
 import { useCreatorStats } from "../../context/CreatorStatsContext";
 
+// --- 1. CUSTOM EXTERNAL TOOLTIP LOGIC ---
+
+const getOrCreateTooltip = (chart) => {
+  let tooltipEl = chart.canvas.parentNode.querySelector('div.chartjs-tooltip');
+
+  if (!tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.className = 'chartjs-tooltip';
+    tooltipEl.style.background = '#121212EE';
+    tooltipEl.style.borderRadius = '4px';
+    tooltipEl.style.color = 'white';
+    tooltipEl.style.opacity = 1;
+    tooltipEl.style.pointerEvents = 'none';
+    tooltipEl.style.position = 'absolute';
+    tooltipEl.style.transform = 'translate(-50%, 0)';
+    tooltipEl.style.transition = 'all .1s ease';
+    tooltipEl.style.border = '1px solid #808080';
+    tooltipEl.style.padding = '10px';
+    tooltipEl.style.fontFamily = "'Calibri', sans-serif";
+    tooltipEl.style.fontSize = '16px';
+    tooltipEl.style.zIndex = 100;
+    tooltipEl.style.minWidth = '180px';
+
+    const table = document.createElement('table');
+    table.style.margin = '0px';
+    table.style.width = '100%';
+
+    tooltipEl.appendChild(table);
+    chart.canvas.parentNode.appendChild(tooltipEl);
+  }
+
+  return tooltipEl;
+};
+
+const externalTooltipHandler = (context) => {
+  const { chart, tooltip } = context;
+  const tooltipEl = getOrCreateTooltip(chart);
+
+  // Hide if no tooltip
+  if (tooltip.opacity === 0) {
+    tooltipEl.style.opacity = 0;
+    return;
+  }
+
+  // Set Text
+  if (tooltip.body) {
+    const titleLines = tooltip.title || [];
+    const bodyLines = tooltip.body.map(b => b.lines);
+
+    const tableHead = document.createElement('thead');
+
+    titleLines.forEach(title => {
+      const tr = document.createElement('tr');
+      tr.style.borderWidth = 0;
+
+      const th = document.createElement('th');
+      th.style.borderWidth = 0;
+      th.style.textAlign = 'left';
+      th.style.paddingBottom = '8px';
+      th.style.fontSize = '16px';
+      th.innerText = title;
+
+      tr.appendChild(th);
+      tableHead.appendChild(tr);
+    });
+
+    const tableBody = document.createElement('tbody');
+    bodyLines.forEach((body, i) => {
+      const colors = tooltip.labelColors[i];
+
+      // Parse "Subscriptions: 7.13" string from Chart.js default formatter
+      const text = body[0];
+      const split = text.split(':');
+      const label = split[0];
+      const value = split[1] || '';
+
+      const tr = document.createElement('tr');
+      tr.style.backgroundColor = 'inherit';
+      tr.style.borderWidth = 0;
+
+      const td = document.createElement('td');
+      td.style.borderWidth = 0;
+      td.style.display = 'flex';
+      td.style.alignItems = 'center';
+      td.style.justifyContent = 'space-between'; // Pushes value to RIGHT
+      td.style.padding = '3px 0';
+      td.style.width = '100%';
+
+      // Container for Color + Label
+      const leftPart = document.createElement('div');
+      leftPart.style.display = 'flex';
+      leftPart.style.alignItems = 'center';
+
+      // Custom Circle Color Box
+      const spanColor = document.createElement('span');
+      spanColor.style.background = colors.backgroundColor;
+      spanColor.style.borderColor = colors.borderColor;
+      spanColor.style.borderWidth = '2px';
+      spanColor.style.marginRight = '8px';
+      spanColor.style.height = '8px';
+      spanColor.style.width = '8px';
+      spanColor.style.borderRadius = '50%'; // Circle
+      spanColor.style.display = 'inline-block';
+
+      leftPart.appendChild(spanColor);
+      leftPart.appendChild(document.createTextNode(label));
+
+      // Value Span
+      const valSpan = document.createElement('span');
+      valSpan.style.fontWeight = 'bold';
+      valSpan.style.marginLeft = '15px';
+      valSpan.innerText = value;
+
+      td.appendChild(leftPart);
+      td.appendChild(valSpan);
+      tr.appendChild(td);
+      tableBody.appendChild(tr);
+    });
+
+    const tableRoot = tooltipEl.querySelector('table');
+
+    // Remove old children
+    while (tableRoot.firstChild) {
+      tableRoot.firstChild.remove();
+    }
+
+    tableRoot.appendChild(tableHead);
+    tableRoot.appendChild(tableBody);
+  }
+
+  const { offsetLeft: positionX, offsetTop: positionY } = chart.canvas;
+
+  // Display, position, and set styles for font
+  tooltipEl.style.opacity = 1;
+  tooltipEl.style.left = positionX + tooltip.caretX + 'px';
+  tooltipEl.style.top = positionY + tooltip.caretY + 'px';
+  tooltipEl.style.font = tooltip.options.bodyFont.string;
+  tooltipEl.style.padding = tooltip.options.padding + 'px ' + tooltip.options.padding + 'px';
+};
+
+// --- 2. HELPERS & PLUGINS ---
+
 const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
   const [startStr, endStr] = dateRange.split("_");
   const startDate = new Date(startStr);
@@ -85,6 +227,8 @@ const CHANNEL_COLORS = {
   messages: "#FFA553",
   streams: "#CA34FF",
 };
+
+// --- 3. COMPONENT ---
 
 const EarningsByChannelGraph: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -167,17 +311,10 @@ const EarningsByChannelGraph: React.FC = () => {
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: true,
+            enabled: false, // DISABLE DEFAULT
+            external: externalTooltipHandler, // ENABLE CUSTOM
             mode: "index",
             intersect: false,
-            backgroundColor: "#121212EE",
-            titleColor: "#fff",
-            bodyColor: "#fff",
-            borderColor: "#808080",
-            borderWidth: 1,
-            padding: 10,
-            bodyFont: { size: 17, family: "'Calibri', sans-serif" },
-            titleFont: { size: 17, weight: 'normal' },
           },
           dragData: {
             round: 2,
@@ -226,14 +363,8 @@ const EarningsByChannelGraph: React.FC = () => {
               lineWidth: 1,
               drawBorder: false,
               tickLength: 8,
-
-              // === FORCED SCRIPTABLE DASH ===
-              // This bypasses any config merging issues
-              borderDash: (context) => {
-                // Only dash grid lines, not the zero line if desired
-                return [10, 10];
-              },
-              // ============================
+              // Forced Scriptable Dash
+              borderDash: (context) => [10, 10],
             },
             ticks: {
               color: "#999",
