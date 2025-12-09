@@ -197,7 +197,16 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const finalOptions = {
     ...staticOptions,
     ...chartOptions,
-    xAxis: { ...staticOptions.xAxis![0], categories: chartOptions.xAxis?.categories || [] }
+    xAxis: {
+      ...staticOptions.xAxis,
+      categories: chartOptions.xAxis?.categories || [],
+      crosshair: {
+        width: 1,
+        color: '#FFFFFF',
+        dashStyle: 'Dash',
+        zIndex: 5
+      }
+    }
   };
 
   return (
