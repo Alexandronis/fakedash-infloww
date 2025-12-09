@@ -31,81 +31,52 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
     let labels = [];
     let startFuncDate;
 
-    // === MAPPING LOGIC ===
-    // We assume Context Data [0, 1, 2...] starts at Dec 7.
-    // Index 0 = Dec 7
-    // Index 1 = Dec 8
-    // Index 2 = Dec 9 (Today)
-
     if (timeFilter === "today") {
-      // Show Dec 9 (Index 2)
-      const idx = 2;
+      const idx = 2; // Dec 9
       displayData = [sourceData[idx] || 0];
       labels = ["Today"];
       startFuncDate = new Date(TODAY);
 
     } else if (timeFilter === "yesterday") {
-      // Show Dec 8 (Index 1)
-      const idx = 1;
+      const idx = 1; // Dec 8
       displayData = [sourceData[idx] || 0];
       labels = ["Yesterday"];
       startFuncDate = new Date(TODAY);
       startFuncDate.setDate(startFuncDate.getDate() - 1);
 
     } else if (timeFilter === "week") {
-      // Show Dec 7 - Dec 13
       startFuncDate = new Date("2025-12-07T00:00:00");
-
       for (let i = 0; i < 7; i++) {
         const d = new Date(startFuncDate);
         d.setDate(d.getDate() + i);
         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-
-        // Map Day i (0..6) to Context Index i (0..6)
-        // But only valid if d <= TODAY (Dec 9) -> Indices 0, 1, 2
-        if (d <= TODAY && i < sourceData.length) {
-          displayData.push(sourceData[i]);
-        } else {
-          displayData.push(0);
-        }
+        if (d <= TODAY && i < sourceData.length) displayData.push(sourceData[i]);
+        else displayData.push(0);
       }
 
     } else {
-      // Month View (Dec 1 - Dec 31)
+      // Month View
       const monthStart = new Date("2025-12-01T00:00:00");
       startFuncDate = monthStart;
-
       for (let i = 0; i < 31; i++) {
         const d = new Date(monthStart);
         d.setDate(d.getDate() + i);
         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-
-        // Map Date to Context Index
-        // Dec 1 is 6 days BEFORE Dec 7. So index -6.
-        // Dec 7 is index 0.
         const diffTime = d.getTime() - new Date("2025-12-07T00:00:00").getTime();
         const index = Math.round(diffTime / (1000 * 3600 * 24));
-
-        if (index >= 0 && index < sourceData.length && d <= TODAY) {
-          displayData.push(sourceData[index]);
-        } else {
-          displayData.push(0);
-        }
+        if (index >= 0 && index < sourceData.length && d <= TODAY) displayData.push(sourceData[index]);
+        else displayData.push(0);
       }
     }
 
-    // === MAP TO SERIES ===
     const seriesData = displayData.map((val, idx) => {
       const pointDate = new Date(startFuncDate);
       pointDate.setDate(pointDate.getDate() + idx);
       pointDate.setHours(0,0,0,0);
-
       const isFuture = pointDate > TODAY;
-
       return {
         y: Number(Number(val).toFixed(2)),
         dragDrop: { draggableY: !isFuture },
-        // Calc global index relative to Dec 7 start
         globalIndex: Math.round((pointDate - new Date("2025-12-07T00:00:00"))/(1000*3600*24))
       };
     });
@@ -114,6 +85,9 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
   }, [stats.graphData, timeFilter]);
 
   useEffect(() => {
+    // Determine label step: Every 2nd day for month view, all days for others
+    const labelStep = timeFilter.includes('month') ? 2 : 1;
+
     const options: Highcharts.Options = {
       chart: { type: "areaspline", backgroundColor: "transparent", borderColor: "#334eff", marginTop: 80, style: { fontFamily: "Inter, sans-serif" }, animation: false },
       title: {
@@ -128,7 +102,14 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         lineColor: "#E6E6E6",
         lineWidth: 0,
         tickColor: "transparent",
-        labels: { style: { color: "#999999", fontSize: "0.8em" }, y: 25, rotation: 0, autoRotation: false },
+        labels: {
+          style: { color: "#999999", fontSize: "10px", textOverflow: "none" },
+          y: 25,
+          rotation: 0,
+          autoRotation: false,
+          // FIX: Step for labels
+          step: labelStep
+        },
         gridLineColor: "#707073",
       },
       yAxis: { title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1, labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 } },
@@ -143,7 +124,16 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         areaspline: {
           lineWidth: 5, color: "#3467FF", fillColor: { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [[0, "rgba(255, 255, 255, 0.1)"], [1, "rgba(255, 255, 255, 0.0)"]] },
           marker: { enabled: true, radius: 6, fillColor: "#FFFFFF", lineColor: "#3467FF", lineWidth: 2, states: { hover: { radius: 8, lineWidth: 3 } } },
-          dragDrop: { draggableY: true, dragMinY: 0, dragPrecision: 1, dragHandle: { lineColor: 'transparent', color: 'transparent' } },
+          dragDrop: {
+            draggableY: true,
+            dragMinY: 0,
+
+            // === DRAG TUNING ===
+            dragPrecisionY: 1, // Snap to integer
+            dragSensitivity: 8, // Requires 5px move to start dragging (less jumpy)
+
+            dragHandle: { lineColor: 'transparent', color: 'transparent' }
+          },
           point: {
             events: {
               drop: function (e) {
@@ -158,7 +148,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       series: [{ name: "Sales", data: chartData.seriesData }]
     };
     setChartOptions(options);
-  }, [chartData]);
+  }, [chartData, timeFilter]);
 
   return <div id="employee-sales"><HighchartsReact highcharts={Highcharts} options={chartOptions} /></div>;
 };
