@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useCallback, useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 
-// ... (Constants & Helpers remain same) ...
+// --- CONSTANTS ---
 const defaultChannels = ["subscriptions", "tips", "posts", "referrals", "messages", "streams"];
 
 const defaultStats = {
@@ -36,14 +36,11 @@ const defaultFilters = {
   viewMode: "day", // Start with Day view since it's only 1 week? Or keep week.
 };
 
-const COOKIE_KEY = "creatorStats_v16"; // Bump for new range
+const COOKIE_KEY = "creatorStats_v17"; // Bumped for new ratios
 
-// FIX: Align Today with end of range
-const MOCK_TODAY = new Date("2025-12-03T23:59:59");
+const MOCK_TODAY = new Date("2025-12-08T23:59:59");
 
-// ... (Rest of the file is identical to v15 logic) ...
-// Just ensure getDailyLength calculates 7 days correctly from the string.
-// "Nov 27" to "Dec 3" = 6 days diff + 1 = 7 days. Correct.
+// --- CONTEXT DEFINITION ---
 
 const CreatorStatsContext = createContext({
   stats: { ...defaultStats },
@@ -63,8 +60,18 @@ const CreatorStatsContext = createContext({
 
 export const useCreatorStats = () => useContext(CreatorStatsContext);
 
-const fallbackBaseDistribution = { subscriptions: 0.19, tips: 5.65, posts: 0, referrals: 0, messages: 41.84, streams: 0 };
-const fallbackBaseTotal = 47.68;
+// --- HELPERS ---
+
+// === NEW RATIOS HERE ===
+const fallbackBaseDistribution = {
+  subscriptions: 48.31,
+  tips: 76.89,
+  posts: 47.02,
+  referrals: 1.36,
+  messages: 826.42,
+  streams: 0.00
+};
+const fallbackBaseTotal = 1000.00; // Exact sum of above
 
 function getDailyLength(dateRange) {
   const [startStr, endStr] = dateRange.split("_");
@@ -90,9 +97,11 @@ function getValidIndices(dateRange, totalLen) {
 function generateOrganicDistribution(total, count) {
   if (count <= 0) return [];
   if (total <= 0) return Array(count).fill(0);
+
   const weights = Array(count).fill(0).map(() => Math.random() + 0.3);
   const weightSum = weights.reduce((a, b) => a + b, 0);
   let distributed = weights.map(w => Number(((w / weightSum) * total).toFixed(2)));
+
   const currentSum = distributed.reduce((a, b) => a + b, 0);
   let diff = Number((total - currentSum).toFixed(2));
   if (diff !== 0) {
@@ -102,13 +111,16 @@ function generateOrganicDistribution(total, count) {
   return distributed.map(v => (v < 0 ? 0 : v));
 }
 
+// --- RECALC LOGIC ---
+
 function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   const currentChildrenSum = defaultChannels.reduce((acc, ch) => acc + (currentStats[ch] || 0), 0);
   const channelTargets = {};
 
-  if (newTotal <= 0) defaultChannels.forEach(ch => channelTargets[ch] = 0);
-  else if (currentChildrenSum === 0) {
+  if (newTotal <= 0) {
+    defaultChannels.forEach(ch => channelTargets[ch] = 0);
+  } else if (currentChildrenSum === 0) {
     defaultChannels.forEach(ch => {
       const base = fallbackBaseDistribution[ch] || 0;
       const ratio = fallbackBaseTotal > 0 ? base / fallbackBaseTotal : (ch === 'messages' ? 1 : 0);
@@ -128,6 +140,7 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   defaultChannels.forEach(ch => {
     const target = channelTargets[ch];
     nextStats[ch] = target;
+
     let arr = Array(graphLen).fill(0);
     if (target > 0 && numValid > 0) {
       const validPart = generateOrganicDistribution(target, numValid);
@@ -147,14 +160,17 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
 function recalcFromChannelInput(currentStats, channel, newValue, graphLen, dateRange) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   nextStats[channel] = Number(newValue.toFixed(2));
+
   const validIndices = getValidIndices(dateRange, graphLen);
   const numValid = validIndices.length;
+
   let arr = Array(graphLen).fill(0);
   if (numValid > 0 && newValue > 0) {
     const dist = generateOrganicDistribution(newValue, numValid);
     validIndices.forEach((idx, i) => arr[idx] = dist[i]);
   }
   nextStats.channelData[channel] = arr;
+
   const newTotal = defaultChannels.reduce((sum, ch) => sum + (nextStats[ch] || 0), 0);
   nextStats.total = Number(newTotal.toFixed(2));
   nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
@@ -168,8 +184,10 @@ function recalcFromPointDrag(currentStats, channel, index, pointValue, graphLen)
   const newArr = [...(nextStats.channelData[channel] || Array(graphLen).fill(0))];
   newArr[index] = Number(pointValue.toFixed(2));
   nextStats.channelData[channel] = newArr;
+
   const newChanSum = newArr.reduce((a, b) => a + b, 0);
   nextStats[channel] = Number(newChanSum.toFixed(2));
+
   const newTotal = defaultChannels.reduce((sum, ch) => sum + (nextStats[ch] || 0), 0);
   nextStats.total = Number(newTotal.toFixed(2));
   nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
@@ -181,6 +199,7 @@ function recalcFromPointDrag(currentStats, channel, index, pointValue, graphLen)
 function recalcFromGraphColumn(currentStats, index, newValue, graphLen) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   const oldTotalAtIdx = defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][index] || 0), 0);
+
   defaultChannels.forEach(ch => {
     const currentVal = nextStats.channelData[ch][index] || 0;
     let newVal = 0;
@@ -195,6 +214,7 @@ function recalcFromGraphColumn(currentStats, index, newValue, graphLen) {
     nextStats.channelData[ch] = [...nextStats.channelData[ch]];
     nextStats.channelData[ch][index] = newVal;
   });
+
   let grandTotal = 0;
   defaultChannels.forEach(ch => {
     const s = nextStats.channelData[ch].reduce((a, b) => a + b, 0);
