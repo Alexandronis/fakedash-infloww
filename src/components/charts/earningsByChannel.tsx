@@ -91,11 +91,9 @@ const EarningsByChannelGraph: React.FC = () => {
   const chartRef = useRef<Chart | null>(null);
   const { stats, filters, updateChannelGraphPoint } = useCreatorStats();
 
-  // Use ref to access update function inside closure
   const updateRef = useRef(updateChannelGraphPoint);
   useEffect(() => { updateRef.current = updateChannelGraphPoint; }, [updateChannelGraphPoint]);
 
-  // Use ref to access current filter mode inside closure
   const filterRef = useRef(filters.viewMode);
   useEffect(() => { filterRef.current = filters.viewMode; }, [filters.viewMode]);
 
@@ -108,9 +106,7 @@ const EarningsByChannelGraph: React.FC = () => {
 
       let displayData = [];
 
-      // === AGGREGATION LOGIC ===
       if (filters.viewMode === "week") {
-        // Aggregate 14 days -> 2 weeks
         const w1 = rawData.slice(0, 7).reduce((a,b) => a+b, 0);
         const w2 = rawData.slice(7, 14).reduce((a,b) => a+b, 0);
         displayData = [w1, w2];
@@ -151,6 +147,14 @@ const EarningsByChannelGraph: React.FC = () => {
 
     if (chartRef.current) chartRef.current.destroy();
 
+    const allValues = datasets.flatMap(d => d.data);
+    const maxVal = Math.max(...allValues, 0);
+
+    // Nice Max & Integer Steps
+    let rawMax = maxVal > 0 ? maxVal * 1.1 : 10;
+    let niceMax = Math.ceil(rawMax / 10) * 10;
+    if (niceMax % 5 !== 0) niceMax = Math.ceil(niceMax / 5) * 5;
+
     chartRef.current = new Chart(ctx, {
       type: "line",
       data: {
@@ -171,6 +175,9 @@ const EarningsByChannelGraph: React.FC = () => {
             bodyColor: "#fff",
             borderColor: "#808080",
             borderWidth: 1,
+            padding: 10,
+            bodyFont: { size: 17, family: "'Calibri', sans-serif" },
+            titleFont: { size: 17, weight: 'normal' },
           },
           dragData: {
             round: 2,
@@ -180,34 +187,19 @@ const EarningsByChannelGraph: React.FC = () => {
               const chart = chartRef.current;
               if (!chart) return;
               if (value > chart.scales.y.max) {
-                chart.options.scales.y.max = value + 5;
+                const newMax = Math.ceil((value * 1.1) / 10) * 10;
+                chart.options.scales.y.max = newMax;
                 chart.update('none');
               }
-
               const channelKey = datasets[datasetIndex].channelKey;
               const currentMode = filterRef.current;
 
-              // === DRAG LOGIC ===
               if (currentMode === "day") {
-                // Direct update
                 updateRef.current(channelKey, index, value);
               } else {
-                // WEEK DRAG LOGIC
-                // 1. Calculate average daily value for the new Weekly Total
                 const dailyVal = value / 7;
-
-                // 2. Determine index range in the daily array
-                // Week 0 -> Days 0-6
-                // Week 1 -> Days 7-13
                 const startIdx = index * 7;
-
-                // 3. Update ALL 7 days in context
-                // Since updateChannelGraphPoint recalculates Total every time,
-                // calling it 7 times in a row might be heavy but it works.
-                // A bulk update method would be better, but this gets the job done.
                 for(let i=0; i<7; i++) {
-                  // We use setTimeout to push these to the event loop
-                  // or just call sequentially. React batching might help.
                   updateRef.current(channelKey, startIdx + i, dailyVal);
                 }
               }
@@ -227,17 +219,28 @@ const EarningsByChannelGraph: React.FC = () => {
           },
           y: {
             min: 0,
+            max: niceMax,
             border: { display: false },
             grid: {
               color: "rgba(255, 255, 255, 0.15)",
-              borderDash: [8, 6],
+              lineWidth: 1,
               drawBorder: false,
-              tickLength: 8
+              tickLength: 8,
+
+              // === FORCED SCRIPTABLE DASH ===
+              // This bypasses any config merging issues
+              borderDash: (context) => {
+                // Only dash grid lines, not the zero line if desired
+                return [10, 10];
+              },
+              // ============================
             },
             ticks: {
               color: "#999",
               font: { size: 13, family: "'Calibri', sans-serif" },
-              stepSize: 5
+              maxTicksLimit: 6,
+              stepSize: niceMax / 5,
+              precision: 0
             },
             beginAtZero: true
           }
@@ -249,7 +252,7 @@ const EarningsByChannelGraph: React.FC = () => {
     return () => {
       if (chartRef.current) chartRef.current.destroy();
     };
-  }, [labels, datasets]); // Removed filters.viewMode dependency to prevent loop, used ref
+  }, [labels, datasets]);
 
   return (
     <div style={{ padding: "10px" }} className="earnings-by-channel-wrapper">
