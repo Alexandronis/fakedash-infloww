@@ -22,71 +22,79 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
 
   const [chartOptions, setChartOptions] = useState<Highcharts.Options>({});
 
-  // DATE SYNCED WITH CONTEXT: Dec 8, 2025
-  const TODAY = new Date("2025-12-08T00:00:00");
+  // CUSTOM MOCK TODAY: Dec 9, 2025
+  const TODAY = new Date("2025-12-09T00:00:00");
 
   const chartData = useMemo(() => {
-    // Source is 14 daily points (Nov 30 - Dec 13)
-    const sourceData = stats.graphData || [];
-
+    let sourceData = stats.graphData || [];
     let displayData = [];
     let labels = [];
     let startFuncDate;
 
+    // === MAPPING LOGIC ===
+    // We assume Context Data [0, 1, 2...] starts at Dec 7.
+    // Index 0 = Dec 7
+    // Index 1 = Dec 8
+    // Index 2 = Dec 9 (Today)
+
     if (timeFilter === "today") {
-      const idx = 8;
+      // Show Dec 9 (Index 2)
+      const idx = 2;
       displayData = [sourceData[idx] || 0];
       labels = ["Today"];
       startFuncDate = new Date(TODAY);
 
     } else if (timeFilter === "yesterday") {
-      const idx = 7;
+      // Show Dec 8 (Index 1)
+      const idx = 1;
       displayData = [sourceData[idx] || 0];
       labels = ["Yesterday"];
       startFuncDate = new Date(TODAY);
       startFuncDate.setDate(startFuncDate.getDate() - 1);
 
     } else if (timeFilter === "week") {
-      // Dec 7 - Dec 13 (Indices 7..13)
-      const startIdx = 7;
-      const endIdx = 13;
-
-      for(let i=startIdx; i<=endIdx; i++) {
-        if (i < sourceData.length) displayData.push(sourceData[i]);
-        else displayData.push(0);
-      }
-
+      // Show Dec 7 - Dec 13
       startFuncDate = new Date("2025-12-07T00:00:00");
+
       for (let i = 0; i < 7; i++) {
         const d = new Date(startFuncDate);
         d.setDate(d.getDate() + i);
         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+
+        // Map Day i (0..6) to Context Index i (0..6)
+        // But only valid if d <= TODAY (Dec 9) -> Indices 0, 1, 2
+        if (d <= TODAY && i < sourceData.length) {
+          displayData.push(sourceData[i]);
+        } else {
+          displayData.push(0);
+        }
       }
 
     } else {
       // Month View (Dec 1 - Dec 31)
-      // Context (Nov 30 - Dec 13)
       const monthStart = new Date("2025-12-01T00:00:00");
       startFuncDate = monthStart;
-      displayData = [];
 
       for (let i = 0; i < 31; i++) {
-        const currentD = new Date(monthStart);
-        currentD.setDate(currentD.getDate() + i);
-        labels.push(currentD.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        const d = new Date(monthStart);
+        d.setDate(d.getDate() + i);
+        labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
 
-        // Map Dec 1 -> Context Index 1
-        const sourceIdx = i + 1;
+        // Map Date to Context Index
+        // Dec 1 is 6 days BEFORE Dec 7. So index -6.
+        // Dec 7 is index 0.
+        const diffTime = d.getTime() - new Date("2025-12-07T00:00:00").getTime();
+        const index = Math.round(diffTime / (1000 * 3600 * 24));
 
-        if (sourceIdx < sourceData.length) {
-          displayData.push(sourceData[sourceIdx]);
+        if (index >= 0 && index < sourceData.length && d <= TODAY) {
+          displayData.push(sourceData[index]);
         } else {
           displayData.push(0);
         }
       }
     }
 
-    // Map Points
+    // === MAP TO SERIES ===
     const seriesData = displayData.map((val, idx) => {
       const pointDate = new Date(startFuncDate);
       pointDate.setDate(pointDate.getDate() + idx);
@@ -97,9 +105,8 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       return {
         y: Number(Number(val).toFixed(2)),
         dragDrop: { draggableY: !isFuture },
-        // GLOBAL INDEX MAPPING
-        // Nov 30 = 0
-        globalIndex: Math.round((pointDate - new Date("2025-11-30T00:00:00"))/(1000*3600*24))
+        // Calc global index relative to Dec 7 start
+        globalIndex: Math.round((pointDate - new Date("2025-12-07T00:00:00"))/(1000*3600*24))
       };
     });
 
@@ -107,10 +114,6 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
   }, [stats.graphData, timeFilter]);
 
   useEffect(() => {
-    // Logic to skip labels in Month view to prevent crowding
-    // 1 = show all, 4 = show every 4th label
-    const labelStep = timeFilter.includes('month') ? 2 : 1;
-
     const options: Highcharts.Options = {
       chart: { type: "areaspline", backgroundColor: "transparent", borderColor: "#334eff", marginTop: 80, style: { fontFamily: "Inter, sans-serif" }, animation: false },
       title: {
@@ -125,18 +128,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         lineColor: "#E6E6E6",
         lineWidth: 0,
         tickColor: "transparent",
-        labels: {
-          // === PARAMETERS TO PLAY WITH ===
-          style: {
-            color: "#999999",
-            fontSize: "13px", // Make font smaller (was 0.8em)
-            textOverflow: "none" // Prevents "D..." truncation
-          },
-          y: 25,
-          rotation: 0,
-          autoRotation: false,
-          step: labelStep // Dynamic stepping (1 for week, 4 for month)
-        },
+        labels: { style: { color: "#999999", fontSize: "0.8em" }, y: 25, rotation: 0, autoRotation: false },
         gridLineColor: "#707073",
       },
       yAxis: { title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1, labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 } },
@@ -166,7 +158,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       series: [{ name: "Sales", data: chartData.seriesData }]
     };
     setChartOptions(options);
-  }, [chartData, timeFilter]); // Add timeFilter to dependency array
+  }, [chartData]);
 
   return <div id="employee-sales"><HighchartsReact highcharts={Highcharts} options={chartOptions} /></div>;
 };

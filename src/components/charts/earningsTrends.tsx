@@ -51,6 +51,12 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const viewModeRef = useRef(filters.viewMode);
   useEffect(() => { viewModeRef.current = filters.viewMode; }, [filters.viewMode]);
 
+  const statsRef = useRef(stats);
+  useEffect(() => { statsRef.current = stats; }, [stats]);
+
+  // Ref to the actual chart instance
+  const chartComponentRef = useRef<HighchartsReact.RefObject>(null);
+
   const [chartOptions, setChartOptions] = useState<Highcharts.Options>({ series: [], xAxis: { categories: [] } });
 
   useEffect(() => {
@@ -60,25 +66,34 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
     let displayData = [];
 
     if (filters.viewMode === "week") {
-      const week1 = rawData.slice(0, 7).reduce((a,b)=>a+b, 0);
-      const week2 = rawData.slice(7, 14).reduce((a,b)=>a+b, 0);
-      displayData = [week1, week2];
+      if (rawData.length <= 7) {
+        displayData = [rawData.reduce((a,b)=>a+b, 0)];
+      } else {
+        const week1 = rawData.slice(0, 7).reduce((a,b)=>a+b, 0);
+        const week2 = rawData.slice(7, 14).reduce((a,b)=>a+b, 0);
+        displayData = [week1, week2];
+      }
     } else {
       displayData = rawData;
     }
 
     const seriesData = displayData.map(val => ({ y: Number(val.toFixed(2)) }));
 
-    // Initial Scaling
+    // Dynamic Scale
     const maxVal = Math.max(...seriesData.map(d => d.y), 0);
     let niceMax = Math.ceil(maxVal * 1.1) || 10;
 
+    // FORCE UPDATE EXTREMES DIRECTLY (Bypasses React State Lag)
+    if (chartComponentRef.current && chartComponentRef.current.chart) {
+      chartComponentRef.current.chart.yAxis[0].setExtremes(0, niceMax, true, false);
+    }
+
     setChartOptions(prev => ({
       ...prev,
-      xAxis: { ...prev.xAxis, categories: categories },
+      xAxis: { ...prev.xAxis, categories: categories, max: categories.length - 1 },
       yAxis: {
         ...prev.yAxis,
-        max: niceMax,
+        max: niceMax, // State update ensures next render is correct
         tickAmount: 5,
         tickInterval: null,
         endOnTick: true
@@ -97,13 +112,10 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
       title: { text: "" },
       labels: { style: { color: "#999999" } }
     },
-    xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 } },
+    xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 }, tickInterval: 1 },
     tooltip: {
-      enabled: true,
-      backgroundColor: "#121212EE",
-      style: { color: "#fff", cursor: "default", fontSize: "16px", lineHeight: "20px" },
-      borderColor: "#808080", borderWidth: 1, borderRadius: 5,
-      followPointer: true, followTouchMove: true, padding: 10, shadow: false, shape: "callout", shared: true, snap: 0, stickOnContact: false,
+      enabled: true, backgroundColor: "#121212EE", style: { color: "#fff", cursor: "default", fontSize: "16px", lineHeight: "20px" },
+      borderColor: "#808080", borderWidth: 1, borderRadius: 5, followPointer: true, followTouchMove: true, padding: 10, shadow: false, shape: "callout", shared: true, snap: 0, stickOnContact: false,
       formatter: function () {
         const point = this.point;
         const index = point.index;
@@ -130,42 +142,44 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
                 const newVal = e.newPoint.y;
                 const mode = viewModeRef.current;
 
-                // === DYNAMIC RESCALING (UP AND DOWN) ===
+                // Visual Rescale
                 const chart = this.series.chart;
                 const currentData = this.series.data.map(p => p.y);
-                currentData[this.index] = newVal; // Simulate new data state locally
-
+                currentData[this.index] = newVal;
                 const newMaxVal = Math.max(...currentData, 0);
                 const newNiceMax = Math.ceil(newMaxVal * 1.1) || 10;
-
-                // Always update extremes if changed (handles shrink & grow)
-                if (newNiceMax !== chart.yAxis[0].max) {
-                  chart.yAxis[0].setExtremes(0, newNiceMax);
-                }
+                if (newNiceMax !== chart.yAxis[0].max) chart.yAxis[0].setExtremes(0, newNiceMax);
 
                 if (mode === "day") {
                   updateCtxRef.current(this.index, newVal);
                 } else {
-                  // Week Mode Logic
+                  // WEEK MODE DRAG (Same logic as before)
                   const startIdx = this.index * 7;
-                  const MOCK_TODAY = new Date("2025-12-08T23:59:59");
-                  const rangeStart = new Date("2025-11-30T00:00:00");
+                  const MOCK_TODAY = new Date("2025-12-03T23:59:59");
+                  const rangeStart = new Date("2025-11-27T00:00:00");
+                  const currentDailyData = statsRef.current.graphData || [];
+
                   let validIndices = [];
+                  let currentSum = 0;
                   for(let i=0; i<7; i++) {
                     const d = new Date(rangeStart);
                     d.setDate(d.getDate() + startIdx + i);
-                    if (d <= MOCK_TODAY) validIndices.push(startIdx + i);
+                    if (d <= MOCK_TODAY) {
+                      const absIdx = startIdx + i;
+                      validIndices.push(absIdx);
+                      currentSum += (currentDailyData[absIdx] || 0);
+                    }
                   }
                   if (validIndices.length > 0) {
-                    const dailyVal = newVal / validIndices.length;
-                    validIndices.forEach(idx => {
-                      updateCtxRef.current(idx, dailyVal);
-                    });
-                    for(let i=0; i<7; i++) {
-                      const absIdx = startIdx + i;
-                      if (!validIndices.includes(absIdx)) {
-                        updateCtxRef.current(absIdx, 0);
-                      }
+                    if (currentSum === 0) {
+                      const dailyVal = newVal / validIndices.length;
+                      validIndices.forEach(idx => updateCtxRef.current(idx, dailyVal));
+                    } else {
+                      const ratio = newVal / currentSum;
+                      validIndices.forEach(idx => {
+                        const oldVal = currentDailyData[idx] || 0;
+                        updateCtxRef.current(idx, oldVal * ratio);
+                      });
                     }
                   }
                 }
@@ -181,11 +195,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const finalOptions = {
     ...staticOptions,
     ...chartOptions,
-    xAxis: {
-      ...staticOptions.xAxis,
-      categories: chartOptions.xAxis?.categories || [],
-      crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 }
-    }
+    xAxis: { ...staticOptions.xAxis, categories: chartOptions.xAxis?.categories || [], crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 } }
   };
 
   return (
@@ -196,7 +206,12 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
           <img className="charts-title" alt="" src="/info-icon.png" style={{ display: "block", height: "15px", width: "15px", marginLeft: "3px" }} />
         </button>
       </div>
-      <HighchartsReact highcharts={Highcharts} options={finalOptions} containerProps={containerId ? { id: containerId } : {}} />
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={finalOptions}
+        ref={chartComponentRef} // ATTACH REF
+        containerProps={containerId ? { id: containerId } : {}}
+      />
     </div>
   );
 };
