@@ -48,23 +48,18 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const updateCtxRef = useRef(updateGraphColumn);
   useEffect(() => { updateCtxRef.current = updateGraphColumn; }, [updateGraphColumn]);
 
-  // We need access to filters inside the chart event closure
   const viewModeRef = useRef(filters.viewMode);
   useEffect(() => { viewModeRef.current = filters.viewMode; }, [filters.viewMode]);
-
-  // We also need access to current graphData inside closure to do smart scaling if desired
-  // But for now let's do simple distribution to avoid complexity
 
   const [chartOptions, setChartOptions] = useState<Highcharts.Options>({ series: [], xAxis: { categories: [] } });
 
   useEffect(() => {
     const categories = generateCategories(filters.dateRange, filters.viewMode);
-    const rawData = stats.graphData || []; // Daily 14 points
+    const rawData = stats.graphData || [];
 
     let displayData = [];
 
     if (filters.viewMode === "week") {
-      // AGGREGATE Daily -> Weekly (2 Bars)
       const week1 = rawData.slice(0, 7).reduce((a,b)=>a+b, 0);
       const week2 = rawData.slice(7, 14).reduce((a,b)=>a+b, 0);
       displayData = [week1, week2];
@@ -74,9 +69,20 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
 
     const seriesData = displayData.map(val => ({ y: Number(val.toFixed(2)) }));
 
+    // Initial Scaling
+    const maxVal = Math.max(...seriesData.map(d => d.y), 0);
+    let niceMax = Math.ceil(maxVal * 1.1) || 10;
+
     setChartOptions(prev => ({
       ...prev,
       xAxis: { ...prev.xAxis, categories: categories },
+      yAxis: {
+        ...prev.yAxis,
+        max: niceMax,
+        tickAmount: 5,
+        tickInterval: null,
+        endOnTick: true
+      },
       series: [{ type: "column", name: "Earnings", data: seriesData, color: "#3467FF" }]
     }));
   }, [filters.dateRange, filters.viewMode, stats.graphData]);
@@ -84,51 +90,33 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const staticOptions: Highcharts.Options = useMemo(() => ({
     chart: { type: "column", backgroundColor: "transparent", borderColor: "#334eff", marginTop: 10, style: { fontFamily: "'Segoe UI', sans-serif" }, animation: false },
     title: { text: "" }, legend: { enabled: false }, credits: { enabled: false },
-    yAxis: { min: 0, gridLineDashStyle: "Dash", gridLineColor: "#3e3e3e", title: { text: "" }, labels: { style: { color: "#999999" } }, tickInterval: 5 },
+    yAxis: {
+      min: 0,
+      gridLineDashStyle: "Dash",
+      gridLineColor: "#3e3e3e",
+      title: { text: "" },
+      labels: { style: { color: "#999999" } }
+    },
     xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 } },
     tooltip: {
       enabled: true,
       backgroundColor: "#121212EE",
-      style: {
-        color: "#fff",
-        cursor: "default",
-        fontSize: "16px",
-        lineHeight: "20px",
-      },
-      borderColor: "#808080",    // ← white border
-      borderWidth: 1,          // ← thickness
-      borderRadius: 5,
-      followPointer: true,
-      followTouchMove: true,
-      padding: 10,
-      shadow: false,
-      shape: "callout",
-      shared: true,
-      snap: 0,
-      stickOnContact: false,
-
+      style: { color: "#fff", cursor: "default", fontSize: "16px", lineHeight: "20px" },
+      borderColor: "#808080", borderWidth: 1, borderRadius: 5,
+      followPointer: true, followTouchMove: true, padding: 10, shadow: false, shape: "callout", shared: true, snap: 0, stickOnContact: false,
       formatter: function () {
         const point = this.point;
         const index = point.index;
-
-        // Category date text (e.g. "Dec 7")
         const dateLabel = this.series.xAxis.categories[index];
-
-        // Calculate growth vs previous point
         const prevPoint = this.series.points[index - 1];
         let growthText = "—";
-        if (prevPoint) {
+        if (prevPoint && prevPoint.y > 0) {
           const prev = prevPoint.y;
           const curr = point.y;
           const growth = ((curr - prev) / prev) * 100;
           growthText = `${growth >= 0 ? "+" : ""}${growth.toFixed(1)}%`;
         }
-
-        return `
-      <span>&nbsp;${dateLabel}</span><br/>
-      <span>${this.series.name}: $${point.y}</span><br/>
-      Growth: ${growthText}
-    `;
+        return `<span>&nbsp;${dateLabel}</span><br/><span>${this.series.name}: $${point.y}</span><br/>Growth: ${growthText}`;
       }
     },
     plotOptions: {
@@ -142,41 +130,37 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
                 const newVal = e.newPoint.y;
                 const mode = viewModeRef.current;
 
+                // === DYNAMIC RESCALING (UP AND DOWN) ===
+                const chart = this.series.chart;
+                const currentData = this.series.data.map(p => p.y);
+                currentData[this.index] = newVal; // Simulate new data state locally
+
+                const newMaxVal = Math.max(...currentData, 0);
+                const newNiceMax = Math.ceil(newMaxVal * 1.1) || 10;
+
+                // Always update extremes if changed (handles shrink & grow)
+                if (newNiceMax !== chart.yAxis[0].max) {
+                  chart.yAxis[0].setExtremes(0, newNiceMax);
+                }
+
                 if (mode === "day") {
-                  // Direct update
                   updateCtxRef.current(this.index, newVal);
                 } else {
-                  // WEEK MODE DRAG LOGIC
-                  // 1. Determine which 7 days correspond to this bar
-                  // Bar 0 -> Indices 0-6
-                  // Bar 1 -> Indices 7-13
+                  // Week Mode Logic
                   const startIdx = this.index * 7;
-
-                  // 2. Distribute New Weekly Total to the 7 days
-                  // We need to check valid days to avoid putting money in future
-                  // But for simplicity and consistency with HomeChart, let's verify date
                   const MOCK_TODAY = new Date("2025-12-08T23:59:59");
                   const rangeStart = new Date("2025-11-30T00:00:00");
-
-                  // Count valid days in this week
                   let validIndices = [];
                   for(let i=0; i<7; i++) {
                     const d = new Date(rangeStart);
                     d.setDate(d.getDate() + startIdx + i);
                     if (d <= MOCK_TODAY) validIndices.push(startIdx + i);
                   }
-
                   if (validIndices.length > 0) {
                     const dailyVal = newVal / validIndices.length;
-
-                    // Update all valid days
-                    // NOTE: Calling this in a loop might trigger re-renders.
-                    // Ideally context handles batch updates, but this works.
                     validIndices.forEach(idx => {
                       updateCtxRef.current(idx, dailyVal);
                     });
-
-                    // Force 0 for invalid days in this week (if any)
                     for(let i=0; i<7; i++) {
                       const absIdx = startIdx + i;
                       if (!validIndices.includes(absIdx)) {
@@ -200,12 +184,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
     xAxis: {
       ...staticOptions.xAxis,
       categories: chartOptions.xAxis?.categories || [],
-      crosshair: {
-        width: 1,
-        color: '#FFFFFF',
-        dashStyle: 'Dash',
-        zIndex: 5
-      }
+      crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 }
     }
   };
 
