@@ -13,11 +13,9 @@ import {
 import dragData from "chartjs-plugin-dragdata";
 import { useCreatorStats } from "../../context/CreatorStatsContext";
 
-// --- 1. CUSTOM EXTERNAL TOOLTIP LOGIC ---
-
+// --- 1. CUSTOM EXTERNAL TOOLTIP ---
 const getOrCreateTooltip = (chart) => {
   let tooltipEl = chart.canvas.parentNode.querySelector('div.chartjs-tooltip');
-
   if (!tooltipEl) {
     tooltipEl = document.createElement('div');
     tooltipEl.className = 'chartjs-tooltip';
@@ -39,11 +37,9 @@ const getOrCreateTooltip = (chart) => {
     const table = document.createElement('table');
     table.style.margin = '0px';
     table.style.width = '100%';
-
     tooltipEl.appendChild(table);
     chart.canvas.parentNode.appendChild(tooltipEl);
   }
-
   return tooltipEl;
 };
 
@@ -51,30 +47,25 @@ const externalTooltipHandler = (context) => {
   const { chart, tooltip } = context;
   const tooltipEl = getOrCreateTooltip(chart);
 
-  // Hide if no tooltip
   if (tooltip.opacity === 0) {
     tooltipEl.style.opacity = 0;
     return;
   }
 
-  // Set Text
   if (tooltip.body) {
     const titleLines = tooltip.title || [];
     const bodyLines = tooltip.body.map(b => b.lines);
 
     const tableHead = document.createElement('thead');
-
     titleLines.forEach(title => {
       const tr = document.createElement('tr');
       tr.style.borderWidth = 0;
-
       const th = document.createElement('th');
       th.style.borderWidth = 0;
       th.style.textAlign = 'left';
       th.style.paddingBottom = '8px';
       th.style.fontSize = '16px';
       th.innerText = title;
-
       tr.appendChild(th);
       tableHead.appendChild(tr);
     });
@@ -82,8 +73,6 @@ const externalTooltipHandler = (context) => {
     const tableBody = document.createElement('tbody');
     bodyLines.forEach((body, i) => {
       const colors = tooltip.labelColors[i];
-
-      // Parse "Subscriptions: 7.13" string from Chart.js default formatter
       const text = body[0];
       const split = text.split(':');
       const label = split[0];
@@ -97,16 +86,14 @@ const externalTooltipHandler = (context) => {
       td.style.borderWidth = 0;
       td.style.display = 'flex';
       td.style.alignItems = 'center';
-      td.style.justifyContent = 'space-between'; // Pushes value to RIGHT
+      td.style.justifyContent = 'space-between';
       td.style.padding = '3px 0';
       td.style.width = '100%';
 
-      // Container for Color + Label
       const leftPart = document.createElement('div');
       leftPart.style.display = 'flex';
       leftPart.style.alignItems = 'center';
 
-      // Custom Circle Color Box
       const spanColor = document.createElement('span');
       spanColor.style.background = colors.backgroundColor;
       spanColor.style.borderColor = colors.borderColor;
@@ -114,13 +101,12 @@ const externalTooltipHandler = (context) => {
       spanColor.style.marginRight = '8px';
       spanColor.style.height = '8px';
       spanColor.style.width = '8px';
-      spanColor.style.borderRadius = '50%'; // Circle
+      spanColor.style.borderRadius = '50%';
       spanColor.style.display = 'inline-block';
 
       leftPart.appendChild(spanColor);
       leftPart.appendChild(document.createTextNode(label));
 
-      // Value Span
       const valSpan = document.createElement('span');
       valSpan.style.fontWeight = 'bold';
       valSpan.style.marginLeft = '15px';
@@ -133,19 +119,12 @@ const externalTooltipHandler = (context) => {
     });
 
     const tableRoot = tooltipEl.querySelector('table');
-
-    // Remove old children
-    while (tableRoot.firstChild) {
-      tableRoot.firstChild.remove();
-    }
-
+    while (tableRoot.firstChild) tableRoot.firstChild.remove();
     tableRoot.appendChild(tableHead);
     tableRoot.appendChild(tableBody);
   }
 
   const { offsetLeft: positionX, offsetTop: positionY } = chart.canvas;
-
-  // Display, position, and set styles for font
   tooltipEl.style.opacity = 1;
   tooltipEl.style.left = positionX + tooltip.caretX + 'px';
   tooltipEl.style.top = positionY + tooltip.caretY + 'px';
@@ -154,7 +133,6 @@ const externalTooltipHandler = (context) => {
 };
 
 // --- 2. HELPERS & PLUGINS ---
-
 const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
   const [startStr, endStr] = dateRange.split("_");
   const startDate = new Date(startStr);
@@ -183,6 +161,32 @@ const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
     }
   }
   return categories.length > 0 ? categories : ["Week 1", "Week 2"];
+};
+
+// Dashed horizontal y-axis grid plugin
+const dashedYGridPlugin = {
+  id: 'dashedYGrid',
+  afterDraw(chart) {
+    const ctx = chart.ctx;
+    const yScale = chart.scales.y;
+
+    ctx.save();
+    ctx.strokeStyle = "#3e3e3e";
+    ctx.setLineDash([4, 2]);
+    ctx.lineWidth = 1;
+
+    // Compute grid lines based on min, max, and stepSize
+    const step = yScale.ticks[1]?.value - yScale.ticks[0]?.value || 1; // fallback 1
+    for (let val = yScale.min; val <= yScale.max; val += step) {
+      const y = yScale.getPixelForValue(val);
+      ctx.beginPath();
+      ctx.moveTo(chart.chartArea.left, y);
+      ctx.lineTo(chart.chartArea.right, y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
 };
 
 const hoverDashedLinePlugin = {
@@ -216,7 +220,8 @@ Chart.register(
   Tooltip,
   Filler,
   dragData,
-  hoverDashedLinePlugin
+  hoverDashedLinePlugin,
+  dashedYGridPlugin
 );
 
 const CHANNEL_COLORS = {
@@ -229,7 +234,6 @@ const CHANNEL_COLORS = {
 };
 
 // --- 3. COMPONENT ---
-
 const EarningsByChannelGraph: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -293,26 +297,21 @@ const EarningsByChannelGraph: React.FC = () => {
 
     const allValues = datasets.flatMap(d => d.data);
     const maxVal = Math.max(...allValues, 0);
-
-    // Nice Max & Integer Steps
     let rawMax = maxVal > 0 ? maxVal * 1.1 : 10;
     let niceMax = Math.ceil(rawMax / 10) * 10;
     if (niceMax % 5 !== 0) niceMax = Math.ceil(niceMax / 5) * 5;
 
     chartRef.current = new Chart(ctx, {
       type: "line",
-      data: {
-        labels: labels,
-        datasets: datasets,
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
-            enabled: false, // DISABLE DEFAULT
-            external: externalTooltipHandler, // ENABLE CUSTOM
+            enabled: false,
+            external: externalTooltipHandler,
             mode: "index",
             intersect: false,
           },
@@ -324,13 +323,11 @@ const EarningsByChannelGraph: React.FC = () => {
               const chart = chartRef.current;
               if (!chart) return;
               if (value > chart.scales.y.max) {
-                const newMax = Math.ceil((value * 1.1) / 10) * 10;
-                chart.options.scales.y.max = newMax;
+                chart.options.scales.y.max = Math.ceil((value * 1.1) / 10) * 10;
                 chart.update('none');
               }
               const channelKey = datasets[datasetIndex].channelKey;
               const currentMode = filterRef.current;
-
               if (currentMode === "day") {
                 updateRef.current(channelKey, index, value);
               } else {
@@ -357,27 +354,18 @@ const EarningsByChannelGraph: React.FC = () => {
           y: {
             min: 0,
             max: niceMax,
-            border: { display: false },
-            grid: {
-              color: "rgba(255, 255, 255, 0.15)",
-              lineWidth: 1,
-              drawBorder: false,
-              tickLength: 8,
-              // Forced Scriptable Dash
-              borderDash: (context) => [10, 10],
-            },
+            beginAtZero: true,
             ticks: {
               color: "#999",
               font: { size: 13, family: "'Calibri', sans-serif" },
               maxTicksLimit: 6,
               stepSize: niceMax / 5,
               precision: 0
-            },
-            beginAtZero: true
+            }
           }
         }
       },
-      plugins: [hoverDashedLinePlugin],
+      plugins: [hoverDashedLinePlugin, dashedYGridPlugin],
     });
 
     return () => {
