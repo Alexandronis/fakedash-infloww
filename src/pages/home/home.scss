@@ -181,6 +181,10 @@
                             .dollar-sign {
                                 height: 42px;
                             }
+                            & > div {
+                                font-family: system-ui;
+                                margin-top: -1px !important;
+                            }
                         }
                     }
                 }
@@ -206,6 +210,7 @@
                             height: 25px;
                             .dollar-sign {
                                 color: white !important;
+                                font-size: 21px !important;
                             }
                             & > div {
                                 color: white !important;

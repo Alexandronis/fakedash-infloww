@@ -98,7 +98,6 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
             color: style.color === "inherit" ? "inherit" : "#2D74FF",
             lineHeight: "48px",
             verticalAlign: "middle",
-            marginRight: "2px",
             userSelect: "none",
             pointerEvents: "none",
           }}
