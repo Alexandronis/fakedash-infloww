@@ -13,7 +13,9 @@ import {
 import dragData from "chartjs-plugin-dragdata";
 import { useCreatorStats } from "../../context/CreatorStatsContext";
 
-// --- 1. CUSTOM EXTERNAL TOOLTIP ---
+// ... (Tooltip and Helper logic same as before) ...
+// Assuming getOrCreateTooltip, externalTooltipHandler, generateLabels, plugins are present from previous response.
+
 const getOrCreateTooltip = (chart) => {
   let tooltipEl = chart.canvas.parentNode.querySelector('div.chartjs-tooltip');
   if (!tooltipEl) {
@@ -33,7 +35,6 @@ const getOrCreateTooltip = (chart) => {
     tooltipEl.style.fontSize = '16px';
     tooltipEl.style.zIndex = 100;
     tooltipEl.style.minWidth = '180px';
-
     const table = document.createElement('table');
     table.style.margin = '0px';
     table.style.width = '100%';
@@ -46,16 +47,13 @@ const getOrCreateTooltip = (chart) => {
 const externalTooltipHandler = (context) => {
   const { chart, tooltip } = context;
   const tooltipEl = getOrCreateTooltip(chart);
-
   if (tooltip.opacity === 0) {
     tooltipEl.style.opacity = 0;
     return;
   }
-
   if (tooltip.body) {
     const titleLines = tooltip.title || [];
     const bodyLines = tooltip.body.map(b => b.lines);
-
     const tableHead = document.createElement('thead');
     titleLines.forEach(title => {
       const tr = document.createElement('tr');
@@ -69,7 +67,6 @@ const externalTooltipHandler = (context) => {
       tr.appendChild(th);
       tableHead.appendChild(tr);
     });
-
     const tableBody = document.createElement('tbody');
     bodyLines.forEach((body, i) => {
       const colors = tooltip.labelColors[i];
@@ -77,11 +74,9 @@ const externalTooltipHandler = (context) => {
       const split = text.split(':');
       const label = split[0];
       const value = split[1] || '';
-
       const tr = document.createElement('tr');
       tr.style.backgroundColor = 'inherit';
       tr.style.borderWidth = 0;
-
       const td = document.createElement('td');
       td.style.borderWidth = 0;
       td.style.display = 'flex';
@@ -89,11 +84,9 @@ const externalTooltipHandler = (context) => {
       td.style.justifyContent = 'space-between';
       td.style.padding = '3px 0';
       td.style.width = '100%';
-
       const leftPart = document.createElement('div');
       leftPart.style.display = 'flex';
       leftPart.style.alignItems = 'center';
-
       const spanColor = document.createElement('span');
       spanColor.style.background = colors.backgroundColor;
       spanColor.style.borderColor = colors.borderColor;
@@ -103,27 +96,24 @@ const externalTooltipHandler = (context) => {
       spanColor.style.width = '8px';
       spanColor.style.borderRadius = '50%';
       spanColor.style.display = 'inline-block';
-
       leftPart.appendChild(spanColor);
       leftPart.appendChild(document.createTextNode(label));
-
       const valSpan = document.createElement('span');
       valSpan.style.fontWeight = 'bold';
       valSpan.style.marginLeft = '15px';
       valSpan.innerText = value;
-
       td.appendChild(leftPart);
       td.appendChild(valSpan);
       tr.appendChild(td);
       tableBody.appendChild(tr);
     });
-
     const tableRoot = tooltipEl.querySelector('table');
-    while (tableRoot.firstChild) tableRoot.firstChild.remove();
+    while (tableRoot.firstChild) {
+      tableRoot.firstChild.remove();
+    }
     tableRoot.appendChild(tableHead);
     tableRoot.appendChild(tableBody);
   }
-
   const { offsetLeft: positionX, offsetTop: positionY } = chart.canvas;
   tooltipEl.style.opacity = 1;
   tooltipEl.style.left = positionX + tooltip.caretX + 'px';
@@ -132,15 +122,12 @@ const externalTooltipHandler = (context) => {
   tooltipEl.style.padding = tooltip.options.padding + 'px ' + tooltip.options.padding + 'px';
 };
 
-// --- 2. HELPERS & PLUGINS ---
 const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
   const [startStr, endStr] = dateRange.split("_");
   const startDate = new Date(startStr);
   const endDate = new Date(endStr);
   const categories: string[] = [];
-
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return ["Week 1", "Week 2"];
-
   if (viewMode === "week") {
     let current = new Date(startDate);
     while (current <= endDate) {
@@ -161,32 +148,6 @@ const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
     }
   }
   return categories.length > 0 ? categories : ["Week 1", "Week 2"];
-};
-
-// Dashed horizontal y-axis grid plugin
-const dashedYGridPlugin = {
-  id: 'dashedYGrid',
-  afterDraw(chart) {
-    const ctx = chart.ctx;
-    const yScale = chart.scales.y;
-
-    ctx.save();
-    ctx.strokeStyle = "#3e3e3e";
-    ctx.setLineDash([4, 2]);
-    ctx.lineWidth = 1;
-
-    // Compute grid lines based on min, max, and stepSize
-    const step = yScale.ticks[1]?.value - yScale.ticks[0]?.value || 1; // fallback 1
-    for (let val = yScale.min; val <= yScale.max; val += step) {
-      const y = yScale.getPixelForValue(val);
-      ctx.beginPath();
-      ctx.moveTo(chart.chartArea.left, y);
-      ctx.lineTo(chart.chartArea.right, y);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
 };
 
 const hoverDashedLinePlugin = {
@@ -220,8 +181,7 @@ Chart.register(
   Tooltip,
   Filler,
   dragData,
-  hoverDashedLinePlugin,
-  dashedYGridPlugin
+  hoverDashedLinePlugin
 );
 
 const CHANNEL_COLORS = {
@@ -233,7 +193,6 @@ const CHANNEL_COLORS = {
   streams: "#CA34FF",
 };
 
-// --- 3. COMPONENT ---
 const EarningsByChannelGraph: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -248,12 +207,15 @@ const EarningsByChannelGraph: React.FC = () => {
   const labels = useMemo(() => generateLabels(filters.dateRange, filters.viewMode), [filters.dateRange, filters.viewMode]);
 
   const datasets = useMemo(() => {
-    return Object.keys(CHANNEL_COLORS).map((channel) => {
+    // 1. FILTER CHART DATA ONLY
+    const activeChannels = Object.keys(CHANNEL_COLORS).filter(channel => {
+      return (stats[channel] || 0) > 0;
+    });
+
+    return activeChannels.map((channel) => {
       let rawData = stats.channelData ? stats.channelData[channel] : [];
       if (!rawData) rawData = [];
-
       let displayData = [];
-
       if (filters.viewMode === "week") {
         const w1 = rawData.slice(0, 7).reduce((a,b) => a+b, 0);
         const w2 = rawData.slice(7, 14).reduce((a,b) => a+b, 0);
@@ -261,13 +223,11 @@ const EarningsByChannelGraph: React.FC = () => {
       } else {
         displayData = rawData;
       }
-
       if (displayData.length !== labels.length) {
         const diff = labels.length - displayData.length;
         if (diff > 0) displayData = [...displayData, ...Array(diff).fill(0)];
         else displayData = displayData.slice(0, labels.length);
       }
-
       return {
         label: channel.charAt(0).toUpperCase() + channel.slice(1),
         data: displayData,
@@ -285,18 +245,18 @@ const EarningsByChannelGraph: React.FC = () => {
         channelKey: channel
       };
     });
-  }, [stats.channelData, labels, filters.viewMode]);
+  }, [stats.channelData, labels, filters.viewMode, stats]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     if (chartRef.current) chartRef.current.destroy();
 
     const allValues = datasets.flatMap(d => d.data);
     const maxVal = Math.max(...allValues, 0);
+
     let rawMax = maxVal > 0 ? maxVal * 1.1 : 10;
     let niceMax = Math.ceil(rawMax / 10) * 10;
     if (niceMax % 5 !== 0) niceMax = Math.ceil(niceMax / 5) * 5;
@@ -323,7 +283,8 @@ const EarningsByChannelGraph: React.FC = () => {
               const chart = chartRef.current;
               if (!chart) return;
               if (value > chart.scales.y.max) {
-                chart.options.scales.y.max = Math.ceil((value * 1.1) / 10) * 10;
+                const newMax = Math.ceil((value * 1.1) / 10) * 10;
+                chart.options.scales.y.max = newMax;
                 chart.update('none');
               }
               const channelKey = datasets[datasetIndex].channelKey;
@@ -344,28 +305,33 @@ const EarningsByChannelGraph: React.FC = () => {
         interaction: { mode: "nearest", intersect: false },
         scales: {
           x: {
-            grid: {
-              drawOnChartArea: false,
-              color: "rgba(255,255,255,0.1)"
-            },
+            grid: { drawOnChartArea: false, color: "rgba(255,255,255,0.1)" },
             ticks: { color: "#999", font: { size: 13, family: "'Calibri', sans-serif" }, maxTicksLimit: 15 },
             border: { display: true, width: 1, color: "rgba(255,255,255,0.1)" },
           },
           y: {
             min: 0,
             max: niceMax,
-            beginAtZero: true,
+            border: { display: false },
+            grid: {
+              color: "rgba(255, 255, 255, 0.15)",
+              lineWidth: 1,
+              drawBorder: false,
+              tickLength: 8,
+              borderDash: (context) => [10, 10],
+            },
             ticks: {
               color: "#999",
               font: { size: 13, family: "'Calibri', sans-serif" },
               maxTicksLimit: 6,
               stepSize: niceMax / 5,
               precision: 0
-            }
+            },
+            beginAtZero: true
           }
         }
       },
-      plugins: [hoverDashedLinePlugin, dashedYGridPlugin],
+      plugins: [hoverDashedLinePlugin],
     });
 
     return () => {
@@ -387,6 +353,7 @@ const EarningsByChannelGraph: React.FC = () => {
         </div>
         <div className="legend">
           <ul>
+            {/* 2. LEGEND: Show ALL channels (No Filtering) */}
             {Object.entries(CHANNEL_COLORS).map(([key, color]) => {
               const value = stats[key] || 0;
               const percent = stats.total > 0 ? ((value / stats.total) * 100).toFixed(2) : "0.00";
