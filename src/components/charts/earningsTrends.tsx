@@ -54,7 +54,6 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const statsRef = useRef(stats);
   useEffect(() => { statsRef.current = stats; }, [stats]);
 
-  // Ref to the actual chart instance
   const chartComponentRef = useRef<HighchartsReact.RefObject>(null);
 
   const [chartOptions, setChartOptions] = useState<Highcharts.Options>({ series: [], xAxis: { categories: [] } });
@@ -79,11 +78,9 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
 
     const seriesData = displayData.map(val => ({ y: Number(val.toFixed(2)) }));
 
-    // Dynamic Scale
     const maxVal = Math.max(...seriesData.map(d => d.y), 0);
     let niceMax = Math.ceil(maxVal * 1.1) || 10;
 
-    // FORCE UPDATE EXTREMES DIRECTLY (Bypasses React State Lag)
     if (chartComponentRef.current && chartComponentRef.current.chart) {
       chartComponentRef.current.chart.yAxis[0].setExtremes(0, niceMax, true, false);
     }
@@ -93,7 +90,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
       xAxis: { ...prev.xAxis, categories: categories, max: categories.length - 1 },
       yAxis: {
         ...prev.yAxis,
-        max: niceMax, // State update ensures next render is correct
+        max: niceMax,
         tickAmount: 5,
         tickInterval: null,
         endOnTick: true
@@ -138,30 +135,20 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
           dragMinY: 0,
           dragPrecisionY: 1,
           dragSensitivity: 1,
-          // MUST be true for infinite feel
           liveRedraw: true,
           dragHandle: { color: 'transparent', lineColor: 'transparent' }
         },
         stickyTracking: false, allowPointSelect: true,
         point: {
           events: {
-            // === INFINITE DRAG LOGIC ===
             drag: function (e) {
               if (e.newPoint) {
                 const chart = this.series.chart;
                 const currentMax = chart.yAxis[0].max;
                 const val = e.newPoint.y;
-
-                // If near top
                 if (val > currentMax * 0.95) {
-                  // OPTION 1: LINEAR GROWTH (Steady)
-                  // Adds 10% of the current scale, or at least 100 units
                   const step = Math.max(currentMax * 0.05, 100);
                   const newMax = currentMax + step;
-
-                  // OPTION 2: DAMPENED EXPONENTIAL (Slower Curve)
-                  // const newMax = val * 1.05;
-
                   chart.yAxis[0].setExtremes(0, newMax, true, false);
                 }
               }
@@ -170,12 +157,16 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
               if (e.newPoint) {
                 const newVal = e.newPoint.y;
                 const mode = viewModeRef.current;
+                const chart = this.series.chart;
+                const currentData = this.series.data.map(p => p.y);
+                currentData[this.index] = newVal;
+                const newMaxVal = Math.max(...currentData, 0);
+                const newNiceMax = Math.ceil(newMaxVal * 1.1) || 10;
+                if (newNiceMax !== chart.yAxis[0].max) chart.yAxis[0].setExtremes(0, newNiceMax);
 
-                // Final sync with context (logic remains same)
                 if (mode === "day") {
                   updateCtxRef.current(this.index, newVal);
                 } else {
-                  // Week Mode Logic... (same as before)
                   const startIdx = this.index * 7;
                   const MOCK_TODAY = new Date("2025-12-03T23:59:59");
                   const rangeStart = new Date("2025-11-27T00:00:00");
@@ -209,12 +200,14 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
           }
         }
       },
+      // === FIX: REMOVED FIXED WIDTH ===
       column: {
         borderColor: "#ffffff",
         borderWidth: 0,
         borderRadius: 1,
-        pointWidth: 158, // Fixed width as requested
         maxPointWidth: 170,
+        // Use padding to control fatness relatively
+        groupPadding: 0.05,
         color: "#3467FF"
       }
     }
@@ -237,7 +230,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
       <HighchartsReact
         highcharts={Highcharts}
         options={finalOptions}
-        ref={chartComponentRef} // ATTACH REF
+        ref={chartComponentRef}
         containerProps={containerId ? { id: containerId } : {}}
       />
     </div>
