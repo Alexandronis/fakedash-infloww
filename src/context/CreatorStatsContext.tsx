@@ -15,7 +15,9 @@ const defaultStats = {
   streams: 0,
   creatorsCount: 0,
   refundedEarnings: 0,
-  channelData: { subscriptions: [], tips: [], posts: [], referrals: [], messages: [], streams: [] },
+  channelData: {
+    subscriptions: [], tips: [], posts: [], referrals: [], messages: [], streams: []
+  },
   graphData: []
 };
 
@@ -30,15 +32,15 @@ const defaultUserSettings = {
   showOfBadge: true
 };
 
-// FIX: New 7-day range (Nov 27 - Dec 3)
 const defaultFilters = {
-  dateRange: "2025-11-27_2025-12-03",
-  viewMode: "day", // Start with Day view since it's only 1 week? Or keep week.
+  dateRange: "2025-11-30_2025-12-13",
+  viewMode: "week",
 };
 
-const COOKIE_KEY = "creatorStats_v17"; // Bumped for new ratios
+const COOKIE_KEY = "creatorStats_v18"; // Bumped for Dec 10 logic
 
-const MOCK_TODAY = new Date("2025-12-08T23:59:59");
+// FIX: TODAY IS DEC 10
+const MOCK_TODAY = new Date("2025-12-10T23:59:59");
 
 // --- CONTEXT DEFINITION ---
 
@@ -62,16 +64,8 @@ export const useCreatorStats = () => useContext(CreatorStatsContext);
 
 // --- HELPERS ---
 
-// === NEW RATIOS HERE ===
-const fallbackBaseDistribution = {
-  subscriptions: 48.31,
-  tips: 76.89,
-  posts: 47.02,
-  referrals: 1.36,
-  messages: 826.42,
-  streams: 0.00
-};
-const fallbackBaseTotal = 1000.00; // Exact sum of above
+const fallbackBaseDistribution = { subscriptions: 48.31, tips: 76.89, posts: 47.02, referrals: 1.36, messages: 826.42, streams: 0.00 };
+const fallbackBaseTotal = 1000.00;
 
 function getDailyLength(dateRange) {
   const [startStr, endStr] = dateRange.split("_");
@@ -89,7 +83,10 @@ function getValidIndices(dateRange, totalLen) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
     d.setHours(0,0,0,0);
-    if (d <= MOCK_TODAY) validIndices.push(i);
+    // Compare vs Dec 10
+    if (d <= MOCK_TODAY) {
+      validIndices.push(i);
+    }
   }
   return validIndices;
 }
@@ -118,9 +115,8 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   const currentChildrenSum = defaultChannels.reduce((acc, ch) => acc + (currentStats[ch] || 0), 0);
   const channelTargets = {};
 
-  if (newTotal <= 0) {
-    defaultChannels.forEach(ch => channelTargets[ch] = 0);
-  } else if (currentChildrenSum === 0) {
+  if (newTotal <= 0) defaultChannels.forEach(ch => channelTargets[ch] = 0);
+  else if (currentChildrenSum === 0) {
     defaultChannels.forEach(ch => {
       const base = fallbackBaseDistribution[ch] || 0;
       const ratio = fallbackBaseTotal > 0 ? base / fallbackBaseTotal : (ch === 'messages' ? 1 : 0);
@@ -140,7 +136,6 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   defaultChannels.forEach(ch => {
     const target = channelTargets[ch];
     nextStats[ch] = target;
-
     let arr = Array(graphLen).fill(0);
     if (target > 0 && numValid > 0) {
       const validPart = generateOrganicDistribution(target, numValid);
@@ -227,6 +222,8 @@ function recalcFromGraphColumn(currentStats, index, newValue, graphLen) {
   );
   return nextStats;
 }
+
+// ======= PROVIDER =======
 
 export const CreatorStatsProvider = ({ children }) => {
   const [state, setState] = useState(() => {
