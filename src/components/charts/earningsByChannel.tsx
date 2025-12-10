@@ -13,16 +13,14 @@ import {
 import dragData from "chartjs-plugin-dragdata";
 import { useCreatorStats } from "../../context/CreatorStatsContext";
 
-// ... (Tooltip and Helper logic same as before) ...
-// Assuming getOrCreateTooltip, externalTooltipHandler, generateLabels, plugins are present from previous response.
-
+// --- CUSTOM TOOLTIP ---
 const getOrCreateTooltip = (chart) => {
   let tooltipEl = chart.canvas.parentNode.querySelector('div.chartjs-tooltip');
   if (!tooltipEl) {
     tooltipEl = document.createElement('div');
     tooltipEl.className = 'chartjs-tooltip';
     tooltipEl.style.background = '#121212EE';
-    tooltipEl.style.borderRadius = '4px';
+    tooltipEl.style.borderRadius = '5px';
     tooltipEl.style.color = 'white';
     tooltipEl.style.opacity = 1;
     tooltipEl.style.pointerEvents = 'none';
@@ -32,7 +30,7 @@ const getOrCreateTooltip = (chart) => {
     tooltipEl.style.border = '1px solid #808080';
     tooltipEl.style.padding = '10px';
     tooltipEl.style.fontFamily = "'Calibri', sans-serif";
-    tooltipEl.style.fontSize = '16px';
+    tooltipEl.style.fontSize = '14px';
     tooltipEl.style.zIndex = 100;
     tooltipEl.style.minWidth = '180px';
     const table = document.createElement('table');
@@ -62,7 +60,7 @@ const externalTooltipHandler = (context) => {
       th.style.borderWidth = 0;
       th.style.textAlign = 'left';
       th.style.paddingBottom = '8px';
-      th.style.fontSize = '16px';
+      th.style.fontSize = '14px';
       th.innerText = title;
       tr.appendChild(th);
       tableHead.appendChild(tr);
@@ -92,8 +90,8 @@ const externalTooltipHandler = (context) => {
       spanColor.style.borderColor = colors.borderColor;
       spanColor.style.borderWidth = '2px';
       spanColor.style.marginRight = '8px';
-      spanColor.style.height = '8px';
-      spanColor.style.width = '8px';
+      spanColor.style.height = '10px';
+      spanColor.style.width = '10px';
       spanColor.style.borderRadius = '50%';
       spanColor.style.display = 'inline-block';
       leftPart.appendChild(spanColor);
@@ -108,9 +106,7 @@ const externalTooltipHandler = (context) => {
       tableBody.appendChild(tr);
     });
     const tableRoot = tooltipEl.querySelector('table');
-    while (tableRoot.firstChild) {
-      tableRoot.firstChild.remove();
-    }
+    while (tableRoot.firstChild) tableRoot.firstChild.remove();
     tableRoot.appendChild(tableHead);
     tableRoot.appendChild(tableBody);
   }
@@ -122,32 +118,28 @@ const externalTooltipHandler = (context) => {
   tooltipEl.style.padding = tooltip.options.padding + 'px ' + tooltip.options.padding + 'px';
 };
 
+// --- LABELS LOGIC (Strict 7 Days) ---
 const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
-  const [startStr, endStr] = dateRange.split("_");
+  // Always use the Creator Page Range: Nov 27 - Dec 3
+  const startStr = "2025-11-27";
   const startDate = new Date(startStr);
-  const endDate = new Date(endStr);
   const categories: string[] = [];
-  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return ["Week 1", "Week 2"];
+
   if (viewMode === "week") {
-    let current = new Date(startDate);
-    while (current <= endDate) {
-      const weekEnd = new Date(current);
-      weekEnd.setDate(current.getDate() + 6);
-      const label = `${current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      categories.push(label);
-      current.setDate(current.getDate() + 7);
-      if (categories.length > 52) break;
-    }
+    // Single Week Label for the whole range
+    const weekEnd = new Date(startDate);
+    weekEnd.setDate(startDate.getDate() + 6);
+    const label = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    categories.push(label);
   } else {
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    for (let i = 0; i < diffDays; i++) {
+    // 7 Days: Nov 27 ... Dec 3
+    for (let i = 0; i < 7; i++) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       categories.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     }
   }
-  return categories.length > 0 ? categories : ["Week 1", "Week 2"];
+  return categories;
 };
 
 const hoverDashedLinePlugin = {
@@ -172,6 +164,7 @@ const hoverDashedLinePlugin = {
   }
 };
 
+// Explicitly register plugins
 Chart.register(
   LineController,
   LineElement,
@@ -207,7 +200,7 @@ const EarningsByChannelGraph: React.FC = () => {
   const labels = useMemo(() => generateLabels(filters.dateRange, filters.viewMode), [filters.dateRange, filters.viewMode]);
 
   const datasets = useMemo(() => {
-    // 1. FILTER CHART DATA ONLY
+    // 1. Filter active channels
     const activeChannels = Object.keys(CHANNEL_COLORS).filter(channel => {
       return (stats[channel] || 0) > 0;
     });
@@ -215,19 +208,22 @@ const EarningsByChannelGraph: React.FC = () => {
     return activeChannels.map((channel) => {
       let rawData = stats.channelData ? stats.channelData[channel] : [];
       if (!rawData) rawData = [];
-      let displayData = [];
+
+      // Slice STRICTLY 7 days (Indices 0-6)
+      // because Context might hold 17 days
+      let displayData = rawData.slice(0, 7);
+      if (displayData.length < 7) {
+        const pad = Array(7 - displayData.length).fill(0);
+        displayData = [...displayData, ...pad];
+      }
+
+      // === AGGREGATION LOGIC ===
       if (filters.viewMode === "week") {
-        const w1 = rawData.slice(0, 7).reduce((a,b) => a+b, 0);
-        const w2 = rawData.slice(7, 14).reduce((a,b) => a+b, 0);
-        displayData = [w1, w2];
-      } else {
-        displayData = rawData;
+        // Aggregate 7 days -> 1 Week Point
+        const weekSum = displayData.reduce((a,b) => a+b, 0);
+        displayData = [weekSum];
       }
-      if (displayData.length !== labels.length) {
-        const diff = labels.length - displayData.length;
-        if (diff > 0) displayData = [...displayData, ...Array(diff).fill(0)];
-        else displayData = displayData.slice(0, labels.length);
-      }
+
       return {
         label: channel.charAt(0).toUpperCase() + channel.slice(1),
         data: displayData,
@@ -289,13 +285,16 @@ const EarningsByChannelGraph: React.FC = () => {
               }
               const channelKey = datasets[datasetIndex].channelKey;
               const currentMode = filterRef.current;
+
               if (currentMode === "day") {
+                // Direct update (Indices 0-6 match context 0-6)
                 updateRef.current(channelKey, index, value);
               } else {
+                // Week Mode (Index 0 is the aggregate)
+                // Distribute new total to indices 0-6
                 const dailyVal = value / 7;
-                const startIdx = index * 7;
                 for(let i=0; i<7; i++) {
-                  updateRef.current(channelKey, startIdx + i, dailyVal);
+                  updateRef.current(channelKey, i, dailyVal);
                 }
               }
             },
@@ -353,7 +352,7 @@ const EarningsByChannelGraph: React.FC = () => {
         </div>
         <div className="legend">
           <ul>
-            {/* 2. LEGEND: Show ALL channels (No Filtering) */}
+            {/* Show ALL channels in Legend */}
             {Object.entries(CHANNEL_COLORS).map(([key, color]) => {
               const value = stats[key] || 0;
               const percent = stats.total > 0 ? ((value / stats.total) * 100).toFixed(2) : "0.00";

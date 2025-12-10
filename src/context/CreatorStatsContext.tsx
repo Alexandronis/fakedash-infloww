@@ -33,13 +33,12 @@ const defaultUserSettings = {
 };
 
 const defaultFilters = {
-  dateRange: "2025-11-30_2025-12-13",
+  dateRange: "2025-11-27_2025-12-13", // Covers BOTH requirements
   viewMode: "week",
 };
 
-const COOKIE_KEY = "creatorStats_v18"; // Bumped for Dec 10 logic
+const COOKIE_KEY = "creatorStats_v23"; // Bumped version
 
-// FIX: TODAY IS DEC 10
 const MOCK_TODAY = new Date("2025-12-10T23:59:59");
 
 // --- CONTEXT DEFINITION ---
@@ -64,7 +63,15 @@ export const useCreatorStats = () => useContext(CreatorStatsContext);
 
 // --- HELPERS ---
 
-const fallbackBaseDistribution = { subscriptions: 48.31, tips: 76.89, posts: 47.02, referrals: 1.36, messages: 826.42, streams: 0.00 };
+// Updated Ratios
+const fallbackBaseDistribution = {
+  subscriptions: 48.31,
+  tips: 76.89,
+  posts: 47.02,
+  referrals: 1.36,
+  messages: 826.42,
+  streams: 0.00
+};
 const fallbackBaseTotal = 1000.00;
 
 function getDailyLength(dateRange) {
@@ -83,7 +90,6 @@ function getValidIndices(dateRange, totalLen) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
     d.setHours(0,0,0,0);
-    // Compare vs Dec 10
     if (d <= MOCK_TODAY) {
       validIndices.push(i);
     }
@@ -110,13 +116,14 @@ function generateOrganicDistribution(total, count) {
 
 // --- RECALC LOGIC ---
 
-function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
+function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange, viewMode) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   const currentChildrenSum = defaultChannels.reduce((acc, ch) => acc + (currentStats[ch] || 0), 0);
   const channelTargets = {};
 
-  if (newTotal <= 0) defaultChannels.forEach(ch => channelTargets[ch] = 0);
-  else if (currentChildrenSum === 0) {
+  if (newTotal <= 0) {
+    defaultChannels.forEach(ch => channelTargets[ch] = 0);
+  } else if (currentChildrenSum === 0) {
     defaultChannels.forEach(ch => {
       const base = fallbackBaseDistribution[ch] || 0;
       const ratio = fallbackBaseTotal > 0 ? base / fallbackBaseTotal : (ch === 'messages' ? 1 : 0);
@@ -129,17 +136,27 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
     });
   }
 
-  const validIndices = getValidIndices(dateRange, graphLen);
+  // 1. Get all valid days (Nov 30 - Dec 10)
+  let validIndices = getValidIndices(dateRange, graphLen);
+
+  // === FIX: REMOVED WEEK VIEW FILTERING ===
+  // We now distribute money across ALL valid days (Nov 30-Dec 10).
+  // This ensures Week 1 (Creator Page) has data.
+
   const numValid = validIndices.length;
 
   let actualTotal = 0;
   defaultChannels.forEach(ch => {
     const target = channelTargets[ch];
     nextStats[ch] = target;
+
     let arr = Array(graphLen).fill(0);
+
     if (target > 0 && numValid > 0) {
       const validPart = generateOrganicDistribution(target, numValid);
-      validIndices.forEach((idx, i) => arr[idx] = validPart[i]);
+      validIndices.forEach((idx, i) => {
+        arr[idx] = validPart[i];
+      });
     }
     nextStats.channelData[ch] = arr;
     actualTotal += target;
@@ -287,6 +304,8 @@ export const CreatorStatsProvider = ({ children }) => {
     return statsMap;
   };
 
+  // --- UPDATERS ---
+
   const updateUserSettings = useCallback((newSettings) => {
     setState(prev => ({ ...prev, userSettings: { ...prev.userSettings, ...newSettings } }));
   }, []);
@@ -306,10 +325,11 @@ export const CreatorStatsProvider = ({ children }) => {
   const updateTotalEarnings = useCallback((value) => {
     setState(prev => {
       const fRange = prev.filters.dateRange;
+      const fMode = prev.filters.viewMode;
       const key = fRange;
       const len = getDailyLength(fRange);
       const map = ensureStats(prev.statsByFilter, fRange);
-      const upd = recalcFromGrandTotal(map[key], value, len, fRange);
+      const upd = recalcFromGrandTotal(map[key], value, len, fRange, fMode);
       return { ...prev, statsByFilter: { ...map, [key]: upd } };
     });
   }, []);

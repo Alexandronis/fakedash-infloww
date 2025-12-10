@@ -32,7 +32,6 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
     let startFuncDate;
 
     if (timeFilter === "today") {
-      // Dec 10 is index 10 (Nov 30 + 10)
       const idx = 10;
       displayData = [sourceData[idx] || 0];
       labels = ["Today"];
@@ -46,17 +45,43 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       startFuncDate.setDate(startFuncDate.getDate() - 1);
 
     } else if (timeFilter === "week") {
-      // FORCE VIEW: Dec 7 - Dec 13
-      // Context Range: Nov 30 (0) ... Dec 7 (7) ... Dec 13 (13)
-      const startIdx = 7;
-      const endIdx = 13;
+      // WEEK VIEW SCALING LOGIC
+      // Target: Dec 7 - Dec 13
+      startFuncDate = new Date("2025-12-07T00:00:00");
+      const startIdx = 10;
+      const endIdx = 16;
 
+      // 1. Get Raw Data for Window
+      let rawWindowData = [];
       for(let i=startIdx; i<=endIdx; i++) {
-        if (i < sourceData.length) displayData.push(sourceData[i]);
-        else displayData.push(0);
+        if (i < sourceData.length) rawWindowData.push(sourceData[i]);
+        else rawWindowData.push(0);
       }
 
-      startFuncDate = new Date("2025-12-07T00:00:00");
+      // 2. Sum Valid Days
+      let validSum = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(startFuncDate);
+        d.setDate(d.getDate() + i);
+        if (d <= TODAY) {
+          validSum += rawWindowData[i];
+        }
+      }
+
+      // 3. Calc Scale Factor
+      let scaleFactor = 1;
+      if (stats.total > 0 && validSum > 0) {
+        scaleFactor = stats.total / validSum;
+      }
+
+      // 4. Apply
+      displayData = rawWindowData.map((val, i) => {
+        const d = new Date(startFuncDate);
+        d.setDate(d.getDate() + i);
+        if (d <= TODAY) return val * scaleFactor;
+        return val;
+      });
+
       for (let i = 0; i < 7; i++) {
         const d = new Date(startFuncDate);
         d.setDate(d.getDate() + i);
@@ -64,7 +89,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       }
 
     } else {
-      // Month View (Dec 1 - Dec 31)
+      // Month View
       const monthStart = new Date("2025-12-01T00:00:00");
       startFuncDate = monthStart;
       displayData = [];
@@ -73,10 +98,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         const d = new Date(monthStart);
         d.setDate(d.getDate() + i);
         labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-
-        // Map Dec 1 (i=0) -> Index 1 (Nov 30 + 1)
         const sourceIdx = i + 1;
-
         if (sourceIdx >= 0 && sourceIdx < sourceData.length) {
           displayData.push(sourceData[sourceIdx]);
         } else {
@@ -89,10 +111,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       const pointDate = new Date(startFuncDate);
       pointDate.setDate(pointDate.getDate() + idx);
       pointDate.setHours(0,0,0,0);
-
       const isFuture = pointDate > TODAY;
-
-      // Global Index Mapping (Relative to Nov 30)
       const globalIndex = Math.round((pointDate - new Date("2025-11-30T00:00:00")) / (1000 * 3600 * 24));
 
       return {
@@ -103,7 +122,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
     });
 
     return { seriesData, labels };
-  }, [stats.graphData, timeFilter]);
+  }, [stats.graphData, timeFilter, stats.total]);
 
   useEffect(() => {
     const labelStep = timeFilter.includes('month') ? 2 : 1;
