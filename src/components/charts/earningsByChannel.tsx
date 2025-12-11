@@ -63,6 +63,7 @@ const externalTooltipHandler = (context) => {
       th.style.paddingTop = '4px';
       th.style.paddingLeft = '3px';
       th.style.fontSize = '16px';
+      th.style.fontWeight = '400';
       th.innerText = title;
       tr.appendChild(th);
       tableHead.appendChild(tr);
@@ -100,8 +101,9 @@ const externalTooltipHandler = (context) => {
       leftPart.appendChild(document.createTextNode(label));
       const valSpan = document.createElement('span');
       valSpan.style.fontWeight = 'bold';
+      valSpan.style.fontFamily = 'system-ui';
       valSpan.style.marginLeft = '15px';
-      valSpan.innerText = value;
+      valSpan.innerText = `$${value.trim()}`;
       td.appendChild(leftPart);
       td.appendChild(valSpan);
       tr.appendChild(td);
