@@ -152,15 +152,35 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       },
       yAxis: { title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1, labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 } },
       tooltip: {
-        shared: true, useHTML: true, backgroundColor: "#262626", borderColor: "#808080", borderRadius: 5, style: { color: "#fff", fontSize: "0.8em" },
+        followPointer: true, followTouchMove: true, animation: true, shared: true, useHTML: true, shape: "callout", snap: 0, shadow: false, stickOnContact: false, backgroundColor: "#262626", borderColor: "#808080", borderWidth: 1, borderRadius: 5, style: { color: "#fff", fontSize: "14px" },
         formatter: function () {
           const point = this.points ? this.points[0] : this;
-          return `<div style="padding: 5px;"><div style="margin-bottom: 4px; font-weight: bold;">${point.key}</div><div>Earnings: <b>$${point.y.toFixed(2)}</b></div></div>`;
+          const prev = this.series.points[this.point.index - 1];
+          let growthText = "Growth: N/A";
+
+          if (prev) {
+            if (prev.y === 0) {
+              growthText = "Growth: 0%";
+            } else {
+              const diff = point.y - prev.y;
+              const pct = (diff / prev.y) * 100;
+              const sign = diff >= 0 ? "+" : "";
+              growthText = `Growth: ${sign}${pct.toFixed(2)}%`;
+            }
+          }
+
+          return `<div style="padding: 5px; transition: opacity 0.15s ease;">
+            <div style="margin-bottom: 4px; font-weight: bold;">${point.key}</div>
+            <div>Earnings: $${point.y.toFixed(2)} ${growthText}</div>
+          </div>`;
         }
       },
       plotOptions: {
         areaspline: {
-          lineWidth: 5, color: "#3467FF", fillColor: { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [[0, "rgba(255, 255, 255, 0.1)"], [1, "rgba(255, 255, 255, 0.0)"]] },
+          lineWidth: 5, color: "#3467FF", fillColor: { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [
+              [0, "rgba(80, 80, 80, 0.25)"],
+              [1, "rgba(80, 80, 80, 0.05)"]
+            ] },
           marker: { enabled: true, radius: 6, fillColor: "#FFFFFF", lineColor: "#3467FF", lineWidth: 2, states: { hover: { radius: 8, lineWidth: 3 } } },
           dragDrop: {
             draggableY: true,
