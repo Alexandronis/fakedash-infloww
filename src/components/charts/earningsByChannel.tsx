@@ -164,6 +164,30 @@ const hoverDashedLinePlugin = {
   }
 };
 
+const dashedYGridPlugin = {
+  id: 'dashedYGrid',
+  afterDraw(chart) {
+    const ctx = chart.ctx;
+    const yScale = chart.scales.y;
+
+    ctx.save();
+    ctx.strokeStyle = "#3e3e3e";
+    ctx.setLineDash([2, 6]); // <-- smaller dashes
+    ctx.lineWidth = 1;
+
+    const step = yScale.ticks[1]?.value - yScale.ticks[0]?.value || 1;
+    for (let val = yScale.min; val <= yScale.max; val += step) {
+      const y = yScale.getPixelForValue(val);
+      ctx.beginPath();
+      ctx.moveTo(chart.chartArea.left, y);
+      ctx.lineTo(chart.chartArea.right, y);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+};
+
 // Explicitly register plugins
 Chart.register(
   LineController,
@@ -174,15 +198,16 @@ Chart.register(
   Tooltip,
   Filler,
   dragData,
-  hoverDashedLinePlugin
+  hoverDashedLinePlugin,
+  dashedYGridPlugin
 );
 
 const CHANNEL_COLORS = {
   subscriptions: "#3467FF",
   tips: "#2AD4AC",
   posts: "#FC6767",
-  referrals: "#34C2FF",
   messages: "#FFA553",
+  referrals: "#34C2FF",
   streams: "#CA34FF",
 };
 
@@ -313,11 +338,7 @@ const EarningsByChannelGraph: React.FC = () => {
             max: niceMax,
             border: { display: false },
             grid: {
-              color: "rgba(255, 255, 255, 0.15)",
-              lineWidth: 1,
-              drawBorder: false,
-              tickLength: 8,
-              borderDash: (context) => [10, 10],
+              display: false,
             },
             ticks: {
               color: "#999",
@@ -330,7 +351,7 @@ const EarningsByChannelGraph: React.FC = () => {
           }
         }
       },
-      plugins: [hoverDashedLinePlugin],
+      plugins: [hoverDashedLinePlugin, dashedYGridPlugin],
     });
 
     return () => {
@@ -347,7 +368,7 @@ const EarningsByChannelGraph: React.FC = () => {
         </button>
       </h6>
       <div id="chartContainer">
-        <div style={{ position: "relative", height: "260px", width: "100%" }}>
+        <div style={{ position: "relative", height: "260px", width: "100%", maxWidth: "70%" }}>
           <canvas ref={canvasRef} style={{ display: "block", boxSizing: "border-box", height: "260px", width: "100%" }}></canvas>
         </div>
         <div className="legend">
