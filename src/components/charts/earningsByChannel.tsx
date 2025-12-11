@@ -30,9 +30,9 @@ const getOrCreateTooltip = (chart) => {
     tooltipEl.style.border = '1px solid #808080';
     tooltipEl.style.padding = '10px';
     tooltipEl.style.fontFamily = "'Calibri', sans-serif";
-    tooltipEl.style.fontSize = '14px';
+    tooltipEl.style.fontSize = '16px';
     tooltipEl.style.zIndex = 100;
-    tooltipEl.style.minWidth = '180px';
+    tooltipEl.style.minWidth = '200px';
     const table = document.createElement('table');
     table.style.margin = '0px';
     table.style.width = '100%';
@@ -60,7 +60,9 @@ const externalTooltipHandler = (context) => {
       th.style.borderWidth = 0;
       th.style.textAlign = 'left';
       th.style.paddingBottom = '8px';
-      th.style.fontSize = '14px';
+      th.style.paddingTop = '4px';
+      th.style.paddingLeft = '3px';
+      th.style.fontSize = '16px';
       th.innerText = title;
       tr.appendChild(th);
       tableHead.appendChild(tr);
@@ -80,7 +82,7 @@ const externalTooltipHandler = (context) => {
       td.style.display = 'flex';
       td.style.alignItems = 'center';
       td.style.justifyContent = 'space-between';
-      td.style.padding = '3px 0';
+      td.style.padding = '3px 3px';
       td.style.width = '100%';
       const leftPart = document.createElement('div');
       leftPart.style.display = 'flex';
@@ -90,8 +92,8 @@ const externalTooltipHandler = (context) => {
       spanColor.style.borderColor = colors.borderColor;
       spanColor.style.borderWidth = '2px';
       spanColor.style.marginRight = '8px';
-      spanColor.style.height = '10px';
-      spanColor.style.width = '10px';
+      spanColor.style.height = '8px';
+      spanColor.style.width = '8px';
       spanColor.style.borderRadius = '50%';
       spanColor.style.display = 'inline-block';
       leftPart.appendChild(spanColor);
