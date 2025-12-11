@@ -5,14 +5,14 @@
     border-top-left-radius: 16px;
     overflow-y: scroll;
     padding: 16px;
+    &::-webkit-scrollbar {
+        width: 10px;
+    }
     .main-card-wrap {
         padding: 16px 24px;
         border-radius: 12px;
         background: #262626;
         margin-bottom: 16px;
-        &.first-main-card-wrap {
-            padding: 16px 24px 8px;
-        }
         .main-card-heading {
             display: flex;
             flex-wrap: wrap;
@@ -140,11 +140,17 @@
                 }
             }
         }
+        &.first-main-card-wrap {
+            padding: 16px 24px;
+            .main-card-heading {
+                margin-bottom: 14px;
+            }
+        }
         .main-card-content {
             display: flex;
             flex-wrap: wrap;
             .overview-col {
-                padding: 20px 35px;
+                padding: 20px 35px 18px;
                 border-right: 1px solid #464646;
                 width: 25%;
                 &:last-child {
@@ -161,7 +167,7 @@
                         line-height: 1.2;
                         color: #1890F1;
                         font-weight: 600;
-                        margin-bottom: 16px;
+                        margin-bottom: 17px;
                         font-family: "Segoe UI", sans-serif;
                     }
                     h5 {
@@ -210,16 +216,24 @@
                             height: 25px;
                             .dollar-sign {
                                 color: white !important;
+                                font-family: system-ui;
                                 font-size: 21px !important;
                             }
                             & > div {
                                 color: white !important;
+                            }
+                            &.sub-earning, &.posts-earning, &.msg-earning, &.tips-earning, &.ref-earning, &.streams-earning  {
+                                & > div {
+                                    font-family: system-ui;
+                                }
                             }
                         }
                         p {
                             font-size: 13px;
                             line-height: 1.2;
                             color: #808080;
+                            position: relative;
+                            top: 1px;
                         }
                     }
                     & > img {

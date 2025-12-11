@@ -216,7 +216,7 @@
             display: flex;
             flex-wrap: wrap;
             .overview-col {
-                padding: 20px 35px;
+                padding: 20px 35px 12px;
                 border-right: 1px solid #464646;
                 width: 25%;
                 &:last-child {
@@ -245,15 +245,17 @@
                         font-weight: 700;
                         &.total-earning {
                             align-items: baseline !important;
+                            font-family: system-ui;
                             font-size: 32px;
                             & > div {
+                                font-family: system-ui;
                                 font-size: 32px !important;
                             }
                         }
                         .dollar-sign {
                             position: relative;
-                            top: -1px;
-                            left: -1px;
+                            top: 0;
+                            left: 0;
                             font-family: "Inter", sans-serif !important;
                         }
                     }
@@ -278,15 +280,18 @@
                             font-weight: 700;
                             margin-bottom: 2px;
                             &.sub-earning, &.posts-earning, &.msg-earning, &.tips-earning, &.ref-earning, &.streams-earning  {
+                                font-family: system-ui;
                                 font-size: 20px;
                                 color: #fff !important;
                                 height: 24px;
                                 & > div {
                                     color: #fff !important;
+                                    font-family: system-ui;
                                     font-size: 20px !important;
                                 }
                                 & > span {
                                     color: #fff !important;
+                                    font-family: system-ui;
                                     font-size: 20px !important;
                                 }
                             }

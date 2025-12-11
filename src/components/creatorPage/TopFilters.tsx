@@ -120,7 +120,7 @@ const TopFilters: React.FC = () => {
             aria-expanded="false"
             style={{backgroundColor: "transparent", appearance: "none", textTransform: "none"}}
           >
-            Shown by {filters.viewMode.charAt(0).toUpperCase() + filters.viewMode.slice(1)}
+            Shown by {filters.viewMode.charAt(0) + filters.viewMode.slice(1)}
           </button>
 
           <ul className="dropdown-menu">
