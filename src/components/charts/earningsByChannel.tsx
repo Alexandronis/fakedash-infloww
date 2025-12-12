@@ -122,28 +122,65 @@ const externalTooltipHandler = (context) => {
   tooltipEl.style.padding = tooltip.options.padding + 'px ' + tooltip.options.padding + 'px';
 };
 
-// --- LABELS LOGIC (Strict 7 Days) ---
+// --- LABELS LOGIC ---
 const generateLabels = (dateRange: string, viewMode: "day" | "week") => {
-  // Always use the Creator Page Range: Nov 27 - Dec 3
-  const startStr = "2025-11-27";
+  const [startStr, endStr] = dateRange.split("_");
   const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
   const categories: string[] = [];
 
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return ["Week 1", "Week 2"];
+
   if (viewMode === "week") {
-    // Single Week Label for the whole range
-    const weekEnd = new Date(startDate);
-    weekEnd.setDate(startDate.getDate() + 6);
-    const label = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-    categories.push(label);
+    let current = new Date(startDate);
+    while (current <= endDate) {
+      const weekEnd = new Date(current);
+      weekEnd.setDate(current.getDate() + 6);
+      const label = `${current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      categories.push(label);
+      current.setDate(current.getDate() + 7);
+      if (categories.length > 52) break;
+    }
   } else {
-    // 7 Days: Nov 27 ... Dec 3
-    for (let i = 0; i < 7; i++) {
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    for (let i = 0; i < diffDays; i++) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       categories.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     }
   }
-  return categories;
+  return categories.length > 0 ? categories : ["Week 1", "Week 2"];
+};
+
+// --- RESTORED DASHED PLUGIN ---
+const dashedYGridPlugin = {
+  id: 'dashedYGrid',
+  afterDraw(chart) {
+    const ctx = chart.ctx;
+    const yScale = chart.scales.y;
+    const xAxis = chart.scales.x;
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.setLineDash([3, 3]); // Dashed style
+    ctx.lineWidth = 1;
+
+    // Draw a line for every visible tick
+    yScale.ticks.forEach(tick => {
+      // Skip 0 line if x-axis covers it, or draw it.
+      // Usually we want to skip if it overlaps the border, but here border is hidden.
+      if (tick.value === 0) return;
+
+      const y = yScale.getPixelForValue(tick.value);
+      ctx.beginPath();
+      ctx.moveTo(xAxis.left, y);
+      ctx.lineTo(xAxis.right, y);
+      ctx.stroke();
+    });
+
+    ctx.restore();
+  }
 };
 
 const hoverDashedLinePlugin = {
@@ -168,31 +205,6 @@ const hoverDashedLinePlugin = {
   }
 };
 
-const dashedYGridPlugin = {
-  id: 'dashedYGrid',
-  afterDraw(chart) {
-    const ctx = chart.ctx;
-    const yScale = chart.scales.y;
-
-    ctx.save();
-    ctx.strokeStyle = "#3e3e3e";
-    ctx.setLineDash([2, 6]); // <-- smaller dashes
-    ctx.lineWidth = 1;
-
-    const step = yScale.ticks[1]?.value - yScale.ticks[0]?.value || 1;
-    for (let val = yScale.min; val <= yScale.max; val += step) {
-      const y = yScale.getPixelForValue(val);
-      ctx.beginPath();
-      ctx.moveTo(chart.chartArea.left, y);
-      ctx.lineTo(chart.chartArea.right, y);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-};
-
-// Explicitly register plugins
 Chart.register(
   LineController,
   LineElement,
@@ -203,7 +215,7 @@ Chart.register(
   Filler,
   dragData,
   hoverDashedLinePlugin,
-  dashedYGridPlugin
+  dashedYGridPlugin // <--- Registered here
 );
 
 const CHANNEL_COLORS = {
@@ -229,7 +241,6 @@ const EarningsByChannelGraph: React.FC = () => {
   const labels = useMemo(() => generateLabels(filters.dateRange, filters.viewMode), [filters.dateRange, filters.viewMode]);
 
   const datasets = useMemo(() => {
-    // 1. Filter active channels
     const activeChannels = Object.keys(CHANNEL_COLORS).filter(channel => {
       return (stats[channel] || 0) > 0;
     });
@@ -238,19 +249,19 @@ const EarningsByChannelGraph: React.FC = () => {
       let rawData = stats.channelData ? stats.channelData[channel] : [];
       if (!rawData) rawData = [];
 
-      // Slice STRICTLY 7 days (Indices 0-6)
-      // because Context might hold 17 days
-      let displayData = rawData.slice(0, 7);
-      if (displayData.length < 7) {
-        const pad = Array(7 - displayData.length).fill(0);
-        displayData = [...displayData, ...pad];
+      let displayData = [];
+      if (filters.viewMode === "week") {
+        const w1 = rawData.slice(0, 7).reduce((a,b) => a+b, 0);
+        const w2 = rawData.slice(7, 14).reduce((a,b) => a+b, 0);
+        displayData = [w1, w2];
+      } else {
+        displayData = rawData;
       }
 
-      // === AGGREGATION LOGIC ===
-      if (filters.viewMode === "week") {
-        // Aggregate 7 days -> 1 Week Point
-        const weekSum = displayData.reduce((a,b) => a+b, 0);
-        displayData = [weekSum];
+      if (displayData.length !== labels.length) {
+        const diff = labels.length - displayData.length;
+        if (diff > 0) displayData = [...displayData, ...Array(diff).fill(0)];
+        else displayData = displayData.slice(0, labels.length);
       }
 
       return {
@@ -277,6 +288,7 @@ const EarningsByChannelGraph: React.FC = () => {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
     if (chartRef.current) chartRef.current.destroy();
 
     const allValues = datasets.flatMap(d => d.data);
@@ -288,7 +300,10 @@ const EarningsByChannelGraph: React.FC = () => {
 
     chartRef.current = new Chart(ctx, {
       type: "line",
-      data: { labels, datasets },
+      data: {
+        labels: labels,
+        datasets: datasets,
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -316,14 +331,12 @@ const EarningsByChannelGraph: React.FC = () => {
               const currentMode = filterRef.current;
 
               if (currentMode === "day") {
-                // Direct update (Indices 0-6 match context 0-6)
                 updateRef.current(channelKey, index, value);
               } else {
-                // Week Mode (Index 0 is the aggregate)
-                // Distribute new total to indices 0-6
                 const dailyVal = value / 7;
+                const startIdx = index * 7;
                 for(let i=0; i<7; i++) {
-                  updateRef.current(channelKey, i, dailyVal);
+                  updateRef.current(channelKey, startIdx + i, dailyVal);
                 }
               }
             },
@@ -341,8 +354,10 @@ const EarningsByChannelGraph: React.FC = () => {
             min: 0,
             max: niceMax,
             border: { display: false },
+            // HIDE NATIVE GRID (Using Plugin instead)
             grid: {
               display: false,
+              drawBorder: false,
             },
             ticks: {
               color: "#999",
