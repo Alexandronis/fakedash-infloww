@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useCallback, useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 
-// --- CONSTANTS ---
 const defaultChannels = ["subscriptions", "tips", "posts", "referrals", "messages", "streams"];
 
 const defaultStats = {
@@ -18,7 +17,8 @@ const defaultStats = {
   channelData: {
     subscriptions: [], tips: [], posts: [], referrals: [], messages: [], streams: []
   },
-  graphData: []
+  graphData: [],
+  homeGraphData: []
 };
 
 const defaultUserSettings = {
@@ -32,11 +32,11 @@ const defaultUserSettings = {
   showOfBadge: true
 };
 
-// HELPER: Get dynamic range (Last 14 Days)
+// HELPER: Dynamic Range (Last 30 Days)
 const getDynamicRange = () => {
   const end = new Date();
   const start = new Date();
-  start.setDate(end.getDate() - 6); // 7 Days default as per previous 7-day req
+  start.setDate(end.getDate() - 29); // 30 Days window
   const fmt = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
   return `${fmt(start)}_${fmt(end)}`;
 };
@@ -46,9 +46,17 @@ const defaultFilters = {
   viewMode: "week",
 };
 
-const COOKIE_KEY = "creatorStats_v27"; // Bump
+const COOKIE_KEY = "creatorStats_v34"; // Bump for Dynamic Logic
 
-// --- CONTEXT DEFINITION ---
+// HELPER: Dynamic Today
+const GET_TODAY = () => {
+  const d = new Date();
+  d.setHours(23,59,59,999);
+  return d;
+};
+
+// HOME GRAPH: 30 Days ending Today
+const HOME_RANGE_LENGTH = 30;
 
 const CreatorStatsContext = createContext({
   stats: { ...defaultStats },
@@ -58,6 +66,7 @@ const CreatorStatsContext = createContext({
   updateChannelValue: (channel: string, value: number) => {},
   updateGraphColumn: (index: number, newValue: number) => {},
   updateChannelGraphPoint: (channel: string, index: number, value: number) => {},
+  updateHomeGraphColumn: (index: number, newValue: number) => {},
   updateCreatorsCount: (value: number) => {},
   updateRefundedEarnings: (value: number) => {},
   updateUserSettings: (settings: Partial<typeof defaultUserSettings>) => {},
@@ -68,11 +77,7 @@ const CreatorStatsContext = createContext({
 
 export const useCreatorStats = () => useContext(CreatorStatsContext);
 
-// --- HELPERS ---
-
-const fallbackBaseDistribution = {
-  subscriptions: 48.31, tips: 76.89, posts: 47.02, referrals: 1.36, messages: 826.42, streams: 0.00
-};
+const fallbackBaseDistribution = { subscriptions: 48.31, tips: 76.89, posts: 47.02, referrals: 1.36, messages: 826.42, streams: 0.00 };
 const fallbackBaseTotal = 1000.00;
 
 function getDailyLength(dateRange) {
@@ -87,16 +92,22 @@ function getValidIndices(dateRange, totalLen) {
   const [startStr] = dateRange.split("_");
   const start = new Date(startStr);
   const validIndices = [];
-  const today = new Date(); // REAL TODAY
-  today.setHours(23,59,59,999);
+  const today = GET_TODAY();
 
   for(let i=0; i<totalLen; i++) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
     d.setHours(0,0,0,0);
-    if (d <= today) {
-      validIndices.push(i);
-    }
+    if (d <= today) validIndices.push(i);
+  }
+  return validIndices;
+}
+
+function getHomeValidIndices() {
+  const validIndices = [];
+  // Last 30 days are ALWAYS valid in "Last 30 Days" window relative to Today
+  for(let i=0; i<HOME_RANGE_LENGTH; i++) {
+    validIndices.push(i);
   }
   return validIndices;
 }
@@ -116,13 +127,11 @@ function generateOrganicDistribution(total, count) {
   return distributed.map(v => (v < 0 ? 0 : v));
 }
 
-// --- RECALC LOGIC ---
-
-function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange, viewMode) {
+function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
+
   const currentChildrenSum = defaultChannels.reduce((acc, ch) => acc + (currentStats[ch] || 0), 0);
   const channelTargets = {};
-
   if (newTotal <= 0) defaultChannels.forEach(ch => channelTargets[ch] = 0);
   else if (currentChildrenSum === 0) {
     defaultChannels.forEach(ch => {
@@ -137,18 +146,7 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange, viewM
     });
   }
 
-  // Distribute across all valid indices in the range
-  let validIndices = getValidIndices(dateRange, graphLen);
-
-  // IF WEEK MODE: Filter to ensure money lands in the "Visible Week"
-  // But since range is now dynamic (e.g. Last 7 Days), the "Visible Week" IS the range.
-  // So we don't need complex filtering unless range > 7 days.
-  // Let's assume user wants money in the LAST 7 DAYS of the range if Week View.
-  if (viewMode === "week" && graphLen > 7) {
-    const startVisible = graphLen - 7;
-    validIndices = validIndices.filter(idx => idx >= startVisible);
-  }
-
+  const validIndices = getValidIndices(dateRange, graphLen);
   const numValid = validIndices.length;
   let actualTotal = 0;
 
@@ -168,8 +166,22 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange, viewM
   nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
     defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0)
   );
+
+  // Home Graph
+  let homeArr = Array(HOME_RANGE_LENGTH).fill(0);
+  if (newTotal > 0) {
+    const homeDist = generateOrganicDistribution(newTotal, HOME_RANGE_LENGTH);
+    // Fill last 7 days heavily if desired, or organic across month
+    // Let's assume organic across month for stability
+    homeArr = homeDist;
+  }
+  nextStats.homeGraphData = homeArr;
+
   return nextStats;
 }
+
+// ... (Other recalc functions - ensure they use dynamic ranges/helpers) ...
+// Simplified for brevity, assume similar structure using getValidIndices()
 
 function recalcFromChannelInput(currentStats, channel, newValue, graphLen, dateRange) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
@@ -187,6 +199,9 @@ function recalcFromChannelInput(currentStats, channel, newValue, graphLen, dateR
   nextStats.graphData = Array(graphLen).fill(0).map((_, i) =>
     defaultChannels.reduce((sum, ch) => sum + (nextStats.channelData[ch][i] || 0), 0)
   );
+  // Sync Home
+  const homeArr = generateOrganicDistribution(newTotal, HOME_RANGE_LENGTH);
+  nextStats.homeGraphData = homeArr;
   return nextStats;
 }
 
@@ -240,7 +255,6 @@ export const CreatorStatsProvider = ({ children }) => {
     try {
       const raw = Cookies.get(COOKIE_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      // Ensure default range is dynamic if cookie is missing
       const fallbackFilters = { ...defaultFilters, dateRange: getDynamicRange() };
       return {
         statsByFilter: parsed.statsByFilter || {},
@@ -285,15 +299,15 @@ export const CreatorStatsProvider = ({ children }) => {
         defaultChannels.reduce((sum, ch) => sum + newChannelData[ch][i], 0)
       );
 
+      // Home Graph Init (Last 30 Days)
+      let homeGraphData = base.homeGraphData;
+      if (!homeGraphData || homeGraphData.length !== HOME_RANGE_LENGTH) {
+        homeGraphData = generateOrganicDistribution(base.total, HOME_RANGE_LENGTH);
+      }
+
       return {
         ...statsMap,
-        [key]: {
-          ...base,
-          channelData: newChannelData,
-          graphData,
-          creatorsCount: base.creatorsCount || 0,
-          refundedEarnings: base.refundedEarnings || 0
-        }
+        [key]: { ...base, channelData: newChannelData, graphData, homeGraphData, creatorsCount: base.creatorsCount||0, refundedEarnings: base.refundedEarnings||0 }
       };
     }
     return statsMap;
@@ -310,11 +324,9 @@ export const CreatorStatsProvider = ({ children }) => {
   const setDateRange = useCallback((range) => {
     setState(prev => {
       const newFilters = { ...prev.filters, dateRange: range };
-      // Copy current stats to new range for continuity
-      const currentKey = prev.filters.dateRange;
-      const currentStats = prev.statsByFilter[currentKey];
-
-      const newMap = ensureStats(prev.statsByFilter, range, currentStats);
+      const curKey = prev.filters.dateRange;
+      const curStats = prev.statsByFilter[curKey];
+      const newMap = ensureStats(prev.statsByFilter, range, curStats);
       return { ...prev, filters: newFilters, statsByFilter: newMap };
     });
   }, []);
@@ -322,14 +334,17 @@ export const CreatorStatsProvider = ({ children }) => {
   const updateTotalEarnings = useCallback((value) => {
     setState(prev => {
       const fRange = prev.filters.dateRange;
-      const fMode = prev.filters.viewMode;
       const key = fRange;
       const len = getDailyLength(fRange);
       const map = ensureStats(prev.statsByFilter, fRange);
-      const upd = recalcFromGrandTotal(map[key], value, len, fRange, fMode);
+      const upd = recalcFromGrandTotal(map[key], value, len, fRange);
       return { ...prev, statsByFilter: { ...map, [key]: upd } };
     });
   }, []);
+
+  // ... (Other updaters same as previous but ensure using helpers) ...
+  // To save space, assume same structure as above for updateChannelValue, etc.
+  // Just make sure to export updateHomeGraphColumn
 
   const updateChannelValue = useCallback((channel, value) => {
     setState(prev => {
@@ -364,6 +379,28 @@ export const CreatorStatsProvider = ({ children }) => {
     });
   }, []);
 
+  const updateHomeGraphColumn = useCallback((index, value) => {
+    setState(prev => {
+      const fRange = prev.filters.dateRange;
+      const key = fRange;
+      const map = ensureStats(prev.statsByFilter, fRange);
+      const currentStats = map[key];
+
+      const nextStats = { ...currentStats };
+      const newHomeArr = [...(currentStats.homeGraphData || [])];
+      newHomeArr[index] = Number(value.toFixed(2));
+      nextStats.homeGraphData = newHomeArr;
+
+      // Re-sync Creator
+      const newTotal = newHomeArr.reduce((a,b) => a+b, 0);
+      const len = getDailyLength(fRange);
+      const syncedStats = recalcFromGrandTotal(nextStats, newTotal, len, fRange);
+      syncedStats.homeGraphData = newHomeArr;
+
+      return { ...prev, statsByFilter: { ...map, [key]: syncedStats } };
+    });
+  }, []);
+
   const updateCreatorsCount = useCallback((val) => {
     setState(prev => {
       const key = prev.filters.dateRange;
@@ -386,7 +423,7 @@ export const CreatorStatsProvider = ({ children }) => {
     setState(prev => {
       const key = prev.filters.dateRange;
       const len = getDailyLength(key);
-      const clean = { ...defaultStats, graphData: Array(len).fill(0), channelData: defaultStats.channelData };
+      const clean = { ...defaultStats, graphData: Array(len).fill(0), channelData: defaultStats.channelData, homeGraphData: Array(HOME_RANGE_LENGTH).fill(0) };
       defaultChannels.forEach(ch => clean.channelData[ch] = Array(len).fill(0));
       return { ...prev, statsByFilter: { ...prev.statsByFilter, [key]: clean } };
     });
@@ -399,6 +436,7 @@ export const CreatorStatsProvider = ({ children }) => {
     filters: state.filters,
     userSettings: state.userSettings,
     updateTotalEarnings, updateChannelValue, updateGraphColumn, updateChannelGraphPoint,
+    updateHomeGraphColumn,
     updateCreatorsCount, updateRefundedEarnings, updateUserSettings,
     setDateRange, setViewMode, resetStats,
   };
