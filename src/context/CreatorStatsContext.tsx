@@ -33,13 +33,14 @@ const defaultUserSettings = {
 };
 
 const defaultFilters = {
-  dateRange: "2025-11-27_2025-12-13", // Covers BOTH requirements
+  dateRange: "2025-11-27_2025-12-03", // Default 7 days
   viewMode: "week",
 };
 
-const COOKIE_KEY = "creatorStats_v23"; // Bumped version
+const COOKIE_KEY = "creatorStats_v26";
 
-const MOCK_TODAY = new Date("2025-12-10T23:59:59");
+// FIX: Extend Valid Range to Dec 12 to allow data on those days
+const MOCK_TODAY = new Date("2025-12-12T23:59:59");
 
 // --- CONTEXT DEFINITION ---
 
@@ -59,11 +60,11 @@ const CreatorStatsContext = createContext({
   resetStats: () => {},
 });
 
+// === EXPORT HOOK ===
 export const useCreatorStats = () => useContext(CreatorStatsContext);
 
 // --- HELPERS ---
 
-// Updated Ratios
 const fallbackBaseDistribution = {
   subscriptions: 48.31,
   tips: 76.89,
@@ -116,7 +117,7 @@ function generateOrganicDistribution(total, count) {
 
 // --- RECALC LOGIC ---
 
-function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange, viewMode) {
+function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   const nextStats = { ...currentStats, channelData: { ...currentStats.channelData } };
   const currentChildrenSum = defaultChannels.reduce((acc, ch) => acc + (currentStats[ch] || 0), 0);
   const channelTargets = {};
@@ -136,13 +137,9 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange, viewM
     });
   }
 
-  // 1. Get all valid days (Nov 30 - Dec 10)
-  let validIndices = getValidIndices(dateRange, graphLen);
-
-  // === FIX: REMOVED WEEK VIEW FILTERING ===
-  // We now distribute money across ALL valid days (Nov 30-Dec 10).
-  // This ensures Week 1 (Creator Page) has data.
-
+  // Use ALL valid indices in range (no viewMode filtering)
+  // This allows Date Range changes to populate fully.
+  const validIndices = getValidIndices(dateRange, graphLen);
   const numValid = validIndices.length;
 
   let actualTotal = 0;
@@ -263,6 +260,7 @@ export const CreatorStatsProvider = ({ children }) => {
     Cookies.set(COOKIE_KEY, JSON.stringify(state), { expires: 365 });
   }, [state]);
 
+  // Use DateRange as primary key
   const filterKey = `${state.filters.dateRange}`;
 
   const ensureStats = (statsMap, fRange, sourceStats = null) => {
@@ -270,9 +268,11 @@ export const CreatorStatsProvider = ({ children }) => {
     const len = getDailyLength(fRange);
     const existing = statsMap[key];
 
+    // Logic: If range changes, we need new array length
     if (!existing || !existing.channelData || existing.channelData.subscriptions.length !== len) {
       const base = sourceStats ? { ...sourceStats } : { ...defaultStats };
       const newChannelData = {};
+
       const validIndices = getValidIndices(fRange, len);
       const numValid = validIndices.length;
 
@@ -317,7 +317,13 @@ export const CreatorStatsProvider = ({ children }) => {
   const setDateRange = useCallback((range) => {
     setState(prev => {
       const newFilters = { ...prev.filters, dateRange: range };
-      const newMap = ensureStats(prev.statsByFilter, range, null);
+
+      // FIX: Pass current stats as 'sourceStats' to copy data over
+      const currentKey = `${prev.filters.dateRange}`; // Note: Old key logic used DateRange only
+      const currentStats = prev.statsByFilter[currentKey];
+
+      const newMap = ensureStats(prev.statsByFilter, range, currentStats); // <--- Pass currentStats here
+
       return { ...prev, filters: newFilters, statsByFilter: newMap };
     });
   }, []);
@@ -325,11 +331,10 @@ export const CreatorStatsProvider = ({ children }) => {
   const updateTotalEarnings = useCallback((value) => {
     setState(prev => {
       const fRange = prev.filters.dateRange;
-      const fMode = prev.filters.viewMode;
       const key = fRange;
       const len = getDailyLength(fRange);
       const map = ensureStats(prev.statsByFilter, fRange);
-      const upd = recalcFromGrandTotal(map[key], value, len, fRange, fMode);
+      const upd = recalcFromGrandTotal(map[key], value, len, fRange);
       return { ...prev, statsByFilter: { ...map, [key]: upd } };
     });
   }, []);

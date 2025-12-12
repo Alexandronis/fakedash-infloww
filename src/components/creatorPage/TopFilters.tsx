@@ -5,7 +5,7 @@ import { Tooltip } from "bootstrap";
 import { useCreatorStats } from "../../context/CreatorStatsContext";
 
 const TopFilters: React.FC = () => {
-  const { filters, setViewMode } = useCreatorStats();
+  const { filters, setViewMode, setDateRange } = useCreatorStats();
 
   useEffect(() => {
     const tooltipTriggerList = Array.from(
@@ -29,18 +29,18 @@ const TopFilters: React.FC = () => {
     if (!dateRangeRef.current) return;
     (window as any).moment = moment;
 
-    // 1. Parse the default range from Context (matches graphs)
+    // 1. Parse Context Range
     const [startStr, endStr] = filters.dateRange.split("_");
     const startMoment = moment(startStr);
     const endMoment = moment(endStr);
 
+    // 2. Init Picker
     // @ts-ignore
     $(dateRangeRef.current).daterangepicker(
       {
         opens: "left",
         autoUpdateInput: false,
         alwaysShowCalendars: true,
-        // 2. Set the picker to match context
         startDate: startMoment,
         endDate: endMoment,
         ranges: {
@@ -58,7 +58,7 @@ const TopFilters: React.FC = () => {
         },
       },
       function (start: any, end: any) {
-        // Update visual text only (Purely visual as requested)
+        // UPDATE UI
         if (dateRangeRef.current) {
           const span = dateRangeRef.current.querySelector("span");
           if (span) {
@@ -68,19 +68,26 @@ const TopFilters: React.FC = () => {
                 `;
           }
         }
+        // UPDATE CONTEXT
+        const newRange = `${start.format("YYYY-MM-DD")}_${end.format("YYYY-MM-DD")}`;
+        if (newRange !== filters.dateRange) {
+          setDateRange(newRange);
+        }
       }
     );
 
-    // 3. Set initial text immediately
-    const span = dateRangeRef.current.querySelector("span");
-    if (span) {
-      span.innerHTML = `
-            <span style="padding: 0 60px 0 10px">${startMoment.format("MMM. DD, YYYY")}</span>
-            <span style="padding: 0 45px 0 0">⇀ ${endMoment.format("MMM. DD, YYYY")}</span>
-        `;
+    // 3. Initial UI Sync
+    if (dateRangeRef.current) {
+      const span = dateRangeRef.current.querySelector("span");
+      if (span) {
+        span.innerHTML = `
+                <span style="padding: 0 60px 0 10px">${startMoment.format("MMM. DD, YYYY")}</span>
+                <span style="padding: 0 45px 0 0">⇀ ${endMoment.format("MMM. DD, YYYY")}</span>
+            `;
+      }
     }
 
-  }, []); // Run once on mount
+  }, []); // Run once
 
   const handleViewModeChange = (e: React.MouseEvent, mode: "day" | "week" | "hour" | "month") => {
     e.preventDefault();
@@ -99,18 +106,14 @@ const TopFilters: React.FC = () => {
       <div className="header-filter">
         {/* DATE RANGE */}
         <div id="daterange" ref={dateRangeRef}>
-            <span>
-               {/* Initial content will be replaced by useEffect */}
-            </span>
+          <span></span>
           &nbsp;
           <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
             <path stroke="#A6A6A6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 10h16m-8-3V4M7 7V4m10 3V4M5 20h14a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Zm3-7h.01v.01H8V13Zm4 0h.01v.01H12V13Zm4 0h.01v.01H16V13Zm-8 4h.01v.01H8V17Zm4 0h.01v.01H12V17Zm4 0h.01v.01H16V17Z"/>
           </svg>
         </div>
 
-        <div className="daterange1" style={{display: "none"}}>
-          <span>...</span>
-        </div>
+        <div className="daterange1" style={{display: "none"}}><span>...</span></div>
 
         {/* Shown by dropdown */}
         <div className="dropdown header-shown_by">
@@ -120,7 +123,7 @@ const TopFilters: React.FC = () => {
             aria-expanded="false"
             style={{backgroundColor: "transparent", appearance: "none", textTransform: "none"}}
           >
-            Shown by {filters.viewMode.charAt(0) + filters.viewMode.slice(1)}
+            Shown by {filters.viewMode.charAt(0).toUpperCase() + filters.viewMode.slice(1)}
           </button>
 
           <ul className="dropdown-menu">

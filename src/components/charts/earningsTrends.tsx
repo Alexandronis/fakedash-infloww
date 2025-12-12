@@ -13,23 +13,26 @@ if (typeof DraggableModule === "function") {
 
 type HighchartGraphProps = { containerId?: string; };
 
-// Helper: Only generate categories for Nov 27 - Dec 3 (7 days)
-const generateCategories = (viewMode: "day" | "week") => {
-  // Hardcoded target range for Creator Page: Nov 27 - Dec 3
-  const startStr = "2025-11-27";
+const generateCategories = (dateRange: string, viewMode: "day" | "week") => {
+  const [startStr, endStr] = dateRange.split("_");
   const startDate = new Date(startStr);
+  const endDate = new Date(endStr);
   const categories: string[] = [];
 
   if (viewMode === "week") {
-    // 1 Week Label
-    // Nov 27 - Dec 3
-    const weekEnd = new Date(startDate);
-    weekEnd.setDate(startDate.getDate() + 6);
-    const label = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-    categories.push(label);
+    let current = new Date(startDate);
+    while (current <= endDate) {
+      if (categories.length > 52) break;
+      const weekEnd = new Date(current);
+      weekEnd.setDate(current.getDate() + 6);
+      const label = `${current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      categories.push(label);
+      current.setDate(current.getDate() + 7);
+    }
   } else {
-    // 7 Days
-    for (let i = 0; i < 7; i++) {
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    for (let i = 0; i < diffDays; i++) {
       const d = new Date(startDate);
       d.setDate(d.getDate() + i);
       categories.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
@@ -54,40 +57,27 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const [chartOptions, setChartOptions] = useState<Highcharts.Options>({ series: [], xAxis: { categories: [] } });
 
   useEffect(() => {
-    // 1. Generate Categories (Strict 7 Days)
-    const categories = generateCategories(filters.viewMode);
-
-    // 2. Get Raw Data (17 Days in Context)
+    const categories = generateCategories(filters.dateRange, filters.viewMode);
     const rawData = stats.graphData || [];
 
-    // 3. Slice Data (Strict Nov 27 - Dec 3 -> Indices 0 to 6)
-    // We assume context starts at Nov 27 based on V23 update
     let displayData = [];
 
-    // Slice first 7 days
-    const creatorData = rawData.slice(0, 7);
-
-    // Pad if context is empty/short
-    if (creatorData.length < 7) {
-      const diff = 7 - creatorData.length;
-      for(let k=0; k<diff; k++) creatorData.push(0);
-    }
-
     if (filters.viewMode === "week") {
-      // Aggregate 7 days -> 1 Week Column
-      const weekSum = creatorData.reduce((a,b)=>a+b, 0);
-      displayData = [weekSum];
+      const weeks = [];
+      for(let i=0; i<rawData.length; i+=7) {
+        const chunk = rawData.slice(i, i+7);
+        weeks.push(chunk.reduce((a,b)=>a+b, 0));
+      }
+      displayData = weeks;
     } else {
-      displayData = creatorData;
+      displayData = rawData;
     }
 
     const seriesData = displayData.map(val => ({ y: Number(val.toFixed(2)) }));
 
-    // Dynamic Scale
     const maxVal = Math.max(...seriesData.map(d => d.y), 0);
     let niceMax = Math.ceil(maxVal * 1.1) || 10;
 
-    // Force Update Axis
     if (chartComponentRef.current && chartComponentRef.current.chart) {
       chartComponentRef.current.chart.yAxis[0].setExtremes(0, niceMax, true, false);
     }
@@ -104,22 +94,21 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
       },
       series: [{ type: "column", name: "Earnings", data: seriesData, color: "#3467FF" }]
     }));
-  }, [filters.viewMode, stats.graphData]); // removed filters.dateRange dep since we hardcode logic to Nov 27
+  }, [filters.dateRange, filters.viewMode, stats.graphData]);
 
   const staticOptions: Highcharts.Options = useMemo(() => ({
     chart: { type: "column", backgroundColor: "transparent", borderColor: "#334eff", marginTop: 10, style: { fontFamily: "'Segoe UI', sans-serif" }, animation: false },
     title: { text: "" }, legend: { enabled: false }, credits: { enabled: false },
-    yAxis: {
-      min: 0,
-      gridLineDashStyle: "Dash",
-      gridLineColor: "#3e3e3e",
-      title: { text: "" },
-      labels: { style: { color: "#999999" } }
-    },
+    yAxis: { min: 0, gridLineDashStyle: "Dash", gridLineColor: "#3e3e3e", title: { text: "" }, labels: { style: { color: "#999999" } } },
     xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 }, tickInterval: 1 },
+
+    // === RESTORED TOOLTIP FROM YOUR SNIPPET ===
     tooltip: {
-      enabled: true, backgroundColor: "#121212EE", style: { color: "#fff", cursor: "default", fontSize: "16px", lineHeight: "20px" },
-      borderColor: "#808080", borderWidth: 1, borderRadius: 5, followPointer: true, followTouchMove: true, padding: 10, shadow: false, shape: "callout", shared: true, snap: 0, stickOnContact: false,
+      enabled: true,
+      backgroundColor: "#121212EE",
+      style: { color: "#fff", cursor: "default", fontSize: "16px", lineHeight: "20px" },
+      borderColor: "#808080", borderWidth: 1, borderRadius: 5,
+      followPointer: true, followTouchMove: true, padding: 10, shadow: false, shape: "callout", shared: true, snap: 0, stickOnContact: false,
       formatter: function () {
         const point = this.point;
         const index = point.index;
@@ -135,31 +124,14 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
         return `<span>&nbsp;${dateLabel}</span><br/><span>${this.series.name}: $${point.y}</span><br/>Growth: ${growthText}`;
       }
     },
+    // ==========================================
+
     plotOptions: {
       series: {
-        dragDrop: {
-          draggableY: true,
-          dragMinY: 0,
-          dragPrecisionY: 1,
-          dragSensitivity: 1,
-          liveRedraw: true,
-          dragHandle: { color: 'transparent', lineColor: 'transparent' }
-        },
+        dragDrop: { draggableY: true, dragMinY: 0, dragPrecisionY: 0.01, dragHandle: { color: 'transparent', lineColor: 'transparent' } },
         stickyTracking: false, allowPointSelect: true,
         point: {
           events: {
-            drag: function (e) {
-              if (e.newPoint) {
-                const chart = this.series.chart;
-                const currentMax = chart.yAxis[0].max;
-                const val = e.newPoint.y;
-                if (val > currentMax * 0.95) {
-                  const step = Math.max(currentMax * 0.05, 100);
-                  const newMax = currentMax + step;
-                  chart.yAxis[0].setExtremes(0, newMax, true, false);
-                }
-              }
-            },
             drop: function (e) {
               if (e.newPoint) {
                 const newVal = e.newPoint.y;
@@ -174,24 +146,32 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
                 if (newNiceMax !== chart.yAxis[0].max) chart.yAxis[0].setExtremes(0, newNiceMax);
 
                 if (mode === "day") {
-                  // Direct update (Indices 0-6 match context 0-6)
                   updateCtxRef.current(this.index, newVal);
                 } else {
-                  // WEEK MODE (Aggregate Drag)
-                  // Distribute to indices 0-6
-                  const dailyVal = newVal / 7;
+                  // WEEK MODE
+                  const startIdx = this.index * 7;
+                  const endIdx = startIdx + 7;
                   const currentDailyData = statsRef.current.graphData || [];
-                  const validIndices = [0,1,2,3,4,5,6]; // All 7 days are valid in this view
-                  const currentSum = currentDailyData.slice(0, 7).reduce((a,b)=>a+b, 0);
+                  const validIndices = [];
+                  let currentSum = 0;
 
-                  if (currentSum === 0) {
-                    validIndices.forEach(idx => updateCtxRef.current(idx, dailyVal));
-                  } else {
-                    const ratio = newVal / currentSum;
-                    validIndices.forEach(idx => {
-                      const oldVal = currentDailyData[idx] || 0;
-                      updateCtxRef.current(idx, oldVal * ratio);
-                    });
+                  for(let i=startIdx; i<endIdx; i++) {
+                    if (i < currentDailyData.length) {
+                      validIndices.push(i);
+                      currentSum += currentDailyData[i];
+                    }
+                  }
+
+                  if (validIndices.length > 0) {
+                    if (currentSum === 0) {
+                      const dailyVal = newVal / validIndices.length;
+                      validIndices.forEach(idx => updateCtxRef.current(idx, dailyVal));
+                    } else {
+                      const ratio = newVal / currentSum;
+                      validIndices.forEach(idx => {
+                        updateCtxRef.current(idx, currentDailyData[idx] * ratio);
+                      });
+                    }
                   }
                 }
               }
@@ -199,15 +179,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
           }
         }
       },
-      column: {
-        borderColor: "#ffffff",
-        borderWidth: 0,
-        borderRadius: 1,
-        // Responsive Width Logic
-        maxPointWidth: 170,
-        groupPadding: 0.05,
-        color: "#3467FF"
-      }
+      column: { borderColor: "#ffffff", borderWidth: 0, borderRadius: 1, maxPointWidth: 170, groupPadding: 0.05, color: "#3467FF" }
     }
   }), []);
 
@@ -225,12 +197,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
           <img className="charts-title" alt="" src="/info-icon.png" style={{ display: "block", height: "15px", width: "15px", marginLeft: "3px" }} />
         </button>
       </div>
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={finalOptions}
-        ref={chartComponentRef}
-        containerProps={containerId ? { id: containerId } : {}}
-      />
+      <HighchartsReact highcharts={Highcharts} options={finalOptions} ref={chartComponentRef} containerProps={containerId ? { id: containerId } : {}} />
     </div>
   );
 };
