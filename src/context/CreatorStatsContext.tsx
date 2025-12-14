@@ -174,12 +174,18 @@ function recalcFromGrandTotal(currentStats, newTotal, graphLen, dateRange) {
   );
 
   // 3. Home Graph Update (Fixed 30 Days)
-  let homeArr = Array(HOME_RANGE_LENGTH).fill(0);
+  const HOME_LEN = 30;
+  let homeArr = Array(HOME_LEN).fill(0);
+
   if (newTotal > 0) {
-    // Distribute to Last 7 Days (Indices 23-29) to match Total on Home Page
-    const dist = generateOrganicDistribution(newTotal, 7);
-    for(let i=0; i<7; i++) {
-      homeArr[23+i] = dist[i];
+    // Distribute to last 14 days (covering Dec 1 to Dec 14)
+    const targetDays = 14;
+    const startIndex = HOME_LEN - targetDays; // 30 - 14 = 16
+
+    const dist = generateOrganicDistribution(newTotal, targetDays);
+
+    for(let i=0; i<targetDays; i++) {
+      homeArr[startIndex + i] = dist[i];
     }
   }
   nextStats.homeGraphData = homeArr;

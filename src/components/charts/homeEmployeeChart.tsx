@@ -22,7 +22,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
 
   const [chartOptions, setChartOptions] = useState<Highcharts.Options>({});
 
-  // DYNAMIC TODAY (Real Time)
+  // DYNAMIC TODAY
   const TODAY = useMemo(() => {
     const d = new Date();
     d.setHours(0,0,0,0);
@@ -30,14 +30,12 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
   }, []);
 
   const chartData = useMemo(() => {
-    // USE INDEPENDENT HOME DATA (30 Days ending Today)
     let sourceData = stats.homeGraphData || [];
-
     let displayData = [];
     let labels = [];
     let startFuncDate;
 
-    // Index 29 = Today in a 30-day array ending Today
+    // Home Graph Context: Last 30 Days ending Today
     const CONTEXT_LEN = 30;
     const todayIdx = CONTEXT_LEN - 1;
 
@@ -46,12 +44,14 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
     HOME_START.setDate(HOME_START.getDate() - 29);
 
     if (timeFilter === "today") {
-      displayData = [sourceData[todayIdx] || 0];
+      const idx = 29;
+      displayData = [sourceData[idx] || 0];
       labels = ["Today"];
       startFuncDate = new Date(TODAY);
 
     } else if (timeFilter === "yesterday") {
-      displayData = [sourceData[todayIdx - 1] || 0];
+      const idx = 28;
+      displayData = [sourceData[idx] || 0];
       labels = ["Yesterday"];
       startFuncDate = new Date(TODAY);
       startFuncDate.setDate(startFuncDate.getDate() - 1);
@@ -59,39 +59,14 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
     } else if (timeFilter === "week") {
       // WEEK VIEW: Last 7 Days (Indices 23-29)
       const startIdx = 23;
-      let rawWindowData = sourceData.slice(startIdx, 30);
+
+      // Since Context v35 distributes Total into these specific indices,
+      // The RAW data already sums to Total (approx).
+      // No visual scaling needed!
+      displayData = sourceData.slice(startIdx, 30);
 
       startFuncDate = new Date(TODAY);
       startFuncDate.setDate(startFuncDate.getDate() - 6);
-
-      // === VISUAL SCALING TRICK ===
-      // Force visible points to sum to Total Earnings
-      // We assume Total Earnings applies to "Current View" contextually
-      let validSum = 0;
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(startFuncDate);
-        d.setDate(d.getDate() + i);
-        // Only count valid days towards sum
-        if (d <= TODAY) validSum += rawWindowData[i];
-      }
-
-      let scaleFactor = 1;
-      if (stats.total > 0 && validSum > 0) {
-        scaleFactor = stats.total / validSum;
-      } else if (stats.total > 0 && validSum === 0) {
-        // Edge case: Total exists but graph is empty -> Distribute evenly
-        const split = stats.total / 7;
-        rawWindowData = Array(7).fill(split);
-        scaleFactor = 1;
-      }
-
-      // Apply Scale
-      displayData = rawWindowData.map((val, i) => {
-        const d = new Date(startFuncDate);
-        d.setDate(d.getDate() + i);
-        if (d <= TODAY) return val * scaleFactor;
-        return 0; // Future is 0
-      });
 
       for (let i = 0; i < 7; i++) {
         const d = new Date(startFuncDate);
@@ -132,24 +107,17 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       pointDate.setHours(0,0,0,0);
 
       const isFuture = pointDate > TODAY;
-
-      // Calculate Global Index for Drag Update
-      // If Today is index 29:
-      // Index = 29 - daysFromToday
-      const daysFromToday = Math.round((TODAY - pointDate) / (1000 * 3600 * 24));
-      const globalIndex = todayIdx - daysFromToday;
+      const globalIndex = Math.round((pointDate - HOME_START) / (1000 * 3600 * 24));
 
       return {
         y: Number(Number(val).toFixed(2)),
         dragDrop: { draggableY: !isFuture },
-        globalIndex: globalIndex,
-        // Pass scale factor for drag un-scaling
-        scaleFactor: (timeFilter === 'week' && stats.total > 0 && displayData.reduce((a,b)=>a+b,0)>0) ? (stats.total / (stats.homeGraphData.slice(23,30).reduce((a,b)=>a+b,0)||1)) : 1
+        globalIndex: globalIndex
       };
     });
 
     return { seriesData, labels };
-  }, [stats.homeGraphData, timeFilter, TODAY, stats.total]);
+  }, [stats.homeGraphData, timeFilter, TODAY]);
 
   useEffect(() => {
     const labelStep = timeFilter.includes('month') ? 2 : 1;
@@ -178,13 +146,9 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         },
         gridLineColor: "#707073",
       },
-      yAxis: {
-        title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1,
-        labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 },
-        softMax: currentMax
-      },
+      yAxis: { title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1, labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 }, softMax: currentMax },
       tooltip: {
-        followPointer: true, followTouchMove: true, animation: true, shared: true, useHTML: true, shape: "callout", snap: 0, shadow: false, stickOnContact: false, backgroundColor: "#262626", borderColor: "#808080", borderWidth: 1, borderRadius: 5, style: { color: "#fff", fontSize: "14px" },
+        shared: true, useHTML: true, backgroundColor: "#262626", borderColor: "#808080", borderRadius: 5, style: { color: "#fff", fontSize: "0.8em" },
         formatter: function () {
           const point = this.points ? this.points[0] : this;
           const prev = this.series.points[this.point.index - 1];
@@ -221,23 +185,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
             events: {
               drop: function (e) {
                 if (e.newPoint && this.options.globalIndex >= 0) {
-                  // UN-SCALE Logic
-                  // We update the Raw Data, so the Visual Scale Logic will re-apply next render.
-                  // Note: Dragging visually scaled points can be jumpy.
-                  // We attempt to reverse calc:
-                  // Visual = Raw * Scale
-                  // Raw = Visual / Scale
-
-                  // However, since we update Total immediately, the scale factor might shift.
-                  // Simple approach: Use raw value update (ignoring scale) if direct edit is desired,
-                  // OR un-scale if we want visual consistency.
-
-                  // Let's assume direct un-scale for best UX attempt.
-                  // BUT context saves raw.
-
-                  const scale = 1; // Simplified: Let's trust raw drag for stability first.
-                  // If you want "Perfect Visual Match", use this.options.scaleFactor
-
+                  // Direct Raw Update
                   updateRef.current(this.options.globalIndex, e.newPoint.y);
                 }
               }
