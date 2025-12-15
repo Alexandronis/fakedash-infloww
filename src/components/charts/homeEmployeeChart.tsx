@@ -145,6 +145,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
           step: labelStep
         },
         gridLineColor: "#707073",
+        crosshair: { width: 1, color: '#999999', dashStyle: 'Dash', zIndex: 5 }
       },
       yAxis: { title: { text: "" }, gridLineDashStyle: "Dash", gridLineColor: "#444444", gridLineWidth: 1, labels: { style: { color: "#999999", fontSize: "0.8em" }, x: -5, y: 3 }, softMax: currentMax },
       tooltip: {
