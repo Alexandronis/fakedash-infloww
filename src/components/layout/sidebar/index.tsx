@@ -87,7 +87,7 @@ const Sidebar: React.FC = () => {
                     id={item.id}
                     onClick={() => handleMainClick(index)}
                   >
-                    <img src={item.icon} alt="" /> {item.label}
+                    <img src={isMainActive && item.activeIcon ? item.activeIcon : item.icon} alt="" /> {item.label}
                     {item.extra?.badge && (
                       <span className={item.extra.badge.className}>
                         {item.extra.badge.text}
@@ -108,7 +108,7 @@ const Sidebar: React.FC = () => {
                     className={isMainActive ? "active" : ""}
                     onClick={() => handleMainClick(index)}
                   >
-                    <img src={item.icon} alt="" /> {item.label}
+                    <img src={isMainActive && item.activeIcon ? item.activeIcon : item.icon} alt="" /> {item.label}
                     {item.badge && <span className={item.badge.className} />}
                   </button>
                 )}
@@ -127,7 +127,10 @@ const Sidebar: React.FC = () => {
                               className={isSubActive ? "active" : ""}
                               onClick={() => handleSubClick(index, i)}
                             >
-                              <img src={sub.icon} alt="" />
+                              <img
+                                src={isSubActive && sub.activeIcon ? sub.activeIcon : sub.icon}
+                                alt=""
+                              />
                               {sub.label}
                               {sub.extra && <span>{sub.extra}</span>}
                             </a>
