@@ -157,7 +157,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         formatter: function () {
           const point = this.points ? this.points[0] : this;
           const prev = this.series.points[this.point.index - 1];
-          let growthText = "Growth: N/A";
+          let growthText = "Growth: 0.00%";
 
           if (prev) {
             if (prev.y === 0) {
