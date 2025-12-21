@@ -138,7 +138,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
         lineWidth: 0,
         tickColor: "transparent",
         labels: {
-          style: { color: "#999999", fontSize: "10px", textOverflow: "none" },
+          style: { color: "#999999", fontSize: "12px", textOverflow: "none" },
           y: 25,
           rotation: 0,
           autoRotation: false,
