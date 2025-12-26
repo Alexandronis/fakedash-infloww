@@ -114,7 +114,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
         const index = point.index;
         const dateLabel = this.series.xAxis.categories[index];
         const prevPoint = this.series.points[index - 1];
-        let growthText = "—";
+        let growthText = "0.00%";
         if (prevPoint && prevPoint.y > 0) {
           const prev = prevPoint.y;
           const curr = point.y;
