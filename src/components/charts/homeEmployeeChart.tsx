@@ -64,17 +64,17 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       // Get only the days that have occurred in the current week
       displayData = sourceData.slice(-daysElapsed);
 
-      // Generate labels for Sunday through today
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      labels = [];
-      for (let i = 0; i < daysElapsed; i++) {
-        labels.push(dayNames[i]);
-      }
-
       // Calculate start date (this Sunday)
       startFuncDate = new Date(TODAY);
       startFuncDate.setDate(startFuncDate.getDate() - currentDay);
 
+      // Generate labels with actual dates for Sunday through today
+      labels = [];
+      for (let i = 0; i < daysElapsed; i++) {
+        const d = new Date(startFuncDate);
+        d.setDate(d.getDate() + i);
+        labels.push(d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}));
+      }
     } else {
       // MONTH VIEW: Calendar Month (Dec 1 - Dec 31)
       const currentMonth = TODAY.getMonth();
