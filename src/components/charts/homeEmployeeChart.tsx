@@ -57,23 +57,31 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       startFuncDate.setDate(startFuncDate.getDate() - 1);
 
     } else if (timeFilter === "week") {
-      // SUNDAY-BASED WEEK VIEW
+      // SUNDAY-BASED WEEK VIEW - Show all 7 days
       const currentDay = TODAY.getDay(); // 0 = Sunday, 6 = Saturday
       const daysElapsed = currentDay + 1; // Sunday = 1 day, Monday = 2 days, etc.
-
-      // Get only the days that have occurred in the current week
-      displayData = sourceData.slice(-daysElapsed);
 
       // Calculate start date (this Sunday)
       startFuncDate = new Date(TODAY);
       startFuncDate.setDate(startFuncDate.getDate() - currentDay);
 
-      // Generate labels with actual dates for Sunday through today
+      // Always show 7 days (full week)
+      displayData = [];
       labels = [];
-      for (let i = 0; i < daysElapsed; i++) {
+
+      for (let i = 0; i < 7; i++) {
         const d = new Date(startFuncDate);
         d.setDate(d.getDate() + i);
         labels.push(d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}));
+
+        // Only use actual data for days that have passed
+        if (i < daysElapsed) {
+          const dataIndex = sourceData.length - daysElapsed + i;
+          displayData.push(sourceData[dataIndex] || 0);
+        } else {
+          // Future dates get 0
+          displayData.push(0);
+        }
       }
     } else {
       // MONTH VIEW: Calendar Month (Dec 1 - Dec 31)
