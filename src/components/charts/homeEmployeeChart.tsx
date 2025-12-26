@@ -57,22 +57,23 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       startFuncDate.setDate(startFuncDate.getDate() - 1);
 
     } else if (timeFilter === "week") {
-      // WEEK VIEW: Last 7 Days (Indices 23-29)
-      const startIdx = 23;
+      // SUNDAY-BASED WEEK VIEW
+      const currentDay = TODAY.getDay(); // 0 = Sunday, 6 = Saturday
+      const daysElapsed = currentDay + 1; // Sunday = 1 day, Monday = 2 days, etc.
 
-      // Since Context v35 distributes Total into these specific indices,
-      // The RAW data already sums to Total (approx).
-      // No visual scaling needed!
-      displayData = sourceData.slice(startIdx, 30);
+      // Get only the days that have occurred in the current week
+      displayData = sourceData.slice(-daysElapsed);
 
-      startFuncDate = new Date(TODAY);
-      startFuncDate.setDate(startFuncDate.getDate() - 6);
-
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(startFuncDate);
-        d.setDate(d.getDate() + i);
-        labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      // Generate labels for Sunday through today
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      labels = [];
+      for (let i = 0; i < daysElapsed; i++) {
+        labels.push(dayNames[i]);
       }
+
+      // Calculate start date (this Sunday)
+      startFuncDate = new Date(TODAY);
+      startFuncDate.setDate(startFuncDate.getDate() - currentDay);
 
     } else {
       // MONTH VIEW: Calendar Month (Dec 1 - Dec 31)
