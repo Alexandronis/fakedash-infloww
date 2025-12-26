@@ -99,7 +99,18 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
   const staticOptions: Highcharts.Options = useMemo(() => ({
     chart: { type: "column", backgroundColor: "transparent", borderColor: "#334eff", marginTop: 10, style: { fontFamily: "'Segoe UI', sans-serif" }, animation: false },
     title: { text: "" }, legend: { enabled: false }, credits: { enabled: false },
-    yAxis: { min: 0, gridLineDashStyle: "Dash", gridLineColor: "#3e3e3e", title: { text: "" }, labels: { style: { color: "#999999" } } },
+    yAxis: {
+      min: 0,
+      gridLineDashStyle: "Dash",
+      gridLineColor: "#3e3e3e",
+      title: { text: "" },
+      labels: {
+        style: { color: "#999999" },
+        formatter: function () {
+          return Highcharts.numberFormat(this.value, 0, '.', ',');
+        }
+      }
+    },
     xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 }, tickInterval: 1 },
 
     // === RESTORED TOOLTIP FROM YOUR SNIPPET ===
