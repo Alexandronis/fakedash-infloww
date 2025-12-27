@@ -162,7 +162,14 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
           }
         }, softMax: currentMax },
       tooltip: {
-        shared: true, useHTML: true, backgroundColor: "#262626", borderColor: "#808080", borderRadius: 5, style: { color: "#fff", fontSize: "0.8em" },
+        shared: true,
+        useHTML: true,
+        shape: "rect", // --- FIX 1: Removes the triangle pointer
+        backgroundColor: "#262626",
+        borderColor: "#808080", // --- FIX 2: Sets border to Gray
+        borderWidth: 1,
+        borderRadius: 5,
+        style: { color: "#fff", fontSize: "0.8em" },
         formatter: function () {
           const point = this.points ? this.points[0] : this;
           const prev = this.series.points[this.point.index - 1];
