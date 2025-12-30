@@ -200,7 +200,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
             ] },
           marker: { enabled: true, radius: 6, fillColor: "#FFFFFF", lineColor: "#3467FF", lineWidth: 2, states: { hover: { radius: 8, lineWidth: 3 } } },
           dragDrop: {
-            draggableY: true, dragMinY: 0, dragPrecisionY: 1, dragSensitivity: 8, dragHandle: { lineColor: 'transparent', color: 'transparent' }
+            draggableY: true, dragMinY: 0, dragPrecisionY: 0.1, dragSensitivity: 8, dragHandle: { lineColor: 'transparent', color: 'transparent' }
           },
           point: {
             events: {
