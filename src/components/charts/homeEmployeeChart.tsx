@@ -194,10 +194,7 @@ const HomeEmployeeChart: React.FC<HomeEmployeeChartProps> = ({ timeFilter }) => 
       },
       plotOptions: {
         areaspline: {
-          lineWidth: 5, color: "#3467FF", fillColor: { linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 }, stops: [
-              [0, "rgba(80, 80, 80, 0.25)"],
-              [1, "rgba(80, 80, 80, 0.05)"]
-            ] },
+          lineWidth: 5, color: "#3467FF", fillColor: "#30343566",
           marker: { enabled: true, radius: 6, fillColor: "#FFFFFF", lineColor: "#3467FF", lineWidth: 2, states: { hover: { radius: 8, lineWidth: 3 } } },
           dragDrop: {
             draggableY: true, dragMinY: 0, dragPrecisionY: 0.1, dragSensitivity: 8, dragHandle: { lineColor: 'transparent', color: 'transparent' }
