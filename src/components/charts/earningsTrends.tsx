@@ -113,7 +113,7 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
     },
     xAxis: { lineColor: "#3e3e3e", tickColor: "#3e3e3e", labels: { style: { color: "#999999" } }, crosshair: { width: 1, color: '#FFFFFF', dashStyle: 'Dash', zIndex: 5 }, tickInterval: 1 },
 
-    // === RESTORED TOOLTIP FROM YOUR SNIPPET ===
+    // === TOOLTIP ===
     tooltip: {
       enabled: true,
       backgroundColor: "#121212EE",
@@ -139,8 +139,27 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
 
     plotOptions: {
       series: {
-        dragDrop: { draggableY: true, dragMinY: 0, dragPrecisionY: 0.01, dragHandle: { color: 'transparent', lineColor: 'transparent' } },
-        stickyTracking: false, allowPointSelect: true,
+        dragDrop: {
+          draggableY: true,
+          dragMinY: 0,
+          dragPrecisionY: 0.01,
+          dragHandle: {
+            // 1. Make the line 40px thick (creates a 20px hit area above & below edge)
+            lineWidth: 40,
+
+            // 2. Use 1% opacity (invisible to eye, but catches the mouse).
+            // 'transparent' often fails to catch clicks.
+            lineColor: 'rgba(255, 255, 255, 0.01)',
+            color: 'rgba(255, 255, 255, 0.01)',
+
+            // 3. Force the resize cursor so you know you can click
+            cursor: 'ns-resize',
+            zIndex: 100 // Ensure it sits on top of everything
+          }
+        },
+        stickyTracking: false, // Critical: stops tooltip from blocking dragging
+
+        allowPointSelect: true,
         point: {
           events: {
             drop: function (e) {
