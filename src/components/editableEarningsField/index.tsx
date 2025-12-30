@@ -15,7 +15,7 @@ function extractNumber(txt: string): number | null {
   // Match first sequence of digits/dots
   // Example: "$ 10,000.00" -> "10000.00"
   const clean = txt.replace(/[^0-9.]/g, "");
-  let num = parseFloat(clean);
+  const num = parseFloat(clean);
   return isNaN(num) ? null : num;
 }
 
@@ -55,9 +55,9 @@ const EditableEarningsField: React.FC<EditableEarningsFieldProps> = ({
 
   const saveValue = () => {
     if (ref.current) {
-      let txt = ref.current.innerText;
-      let parsed = extractNumber(txt);
-      if (parsed !== null) {
+      const txt = ref.current.innerText;
+      const parsed = extractNumber(txt);
+      if (parsed !== null && parsed !== value) { // Only call onChange if value changed
         onChange(parsed);
       } else {
         ref.current.innerText = formatValue(value);
