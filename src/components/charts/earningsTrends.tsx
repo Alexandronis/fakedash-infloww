@@ -149,8 +149,8 @@ const HighchartGraph: React.FC<HighchartGraphProps> = ({ containerId }) => {
 
             // 2. Use 1% opacity (invisible to eye, but catches the mouse).
             // 'transparent' often fails to catch clicks.
-            lineColor: 'rgba(255, 255, 255, 0.01)',
-            color: 'rgba(255, 255, 255, 0.01)',
+            lineColor: 'rgba(255, 255, 255, 0)',
+            color: 'rgba(255, 255, 255, 0)',
 
             // 3. Force the resize cursor so you know you can click
             cursor: 'ns-resize',
